@@ -337,8 +337,8 @@
           11.682
         ],
         [
-          -61.587,
-          14.123
+          -61.585,
+          14.291
         ]
       ],
       "sharedSegs": [
@@ -395,8 +395,8 @@
           -11.228077586224117
         ],
         [
-          -61.587,
-          14.123
+          -61.588,
+          14.29
         ],
         [
           -58.38126070565784,
@@ -468,6 +468,96 @@
       "suavizadoIntensidad": 10,
       "arq2Numero": "09",
       "franjaNumero": "09",
+      "loteStatus": "disponible"
+    },
+    {
+      "id": "arq2_org_1783230680900",
+      "tipo": "lote-organico",
+      "puntos": [
+        [
+          -62.512,
+          33.653
+        ],
+        [
+          -61.191,
+          28.535
+        ],
+        [
+          -60.026,
+          24.843
+        ],
+        [
+          -59.669,
+          21.778
+        ],
+        [
+          -58.38126070565784,
+          15.565477134308164
+        ],
+        [
+          -66.586,
+          11.652
+        ],
+        [
+          -66.445,
+          36.153
+        ]
+      ],
+      "sharedSegs": [
+        5
+      ],
+      "sharedSegStyles": {
+        "5": "punteada"
+      },
+      "sharedSegMeta": {
+        "5": {
+          "lineId": "arq2_org_1783230782425",
+          "segIdx": 0,
+          "isStreet": false
+        }
+      },
+      "suavizadoIntensidad": 10,
+      "arq2Numero": "10",
+      "franjaNumero": "10",
+      "loteStatus": "disponible"
+    },
+    {
+      "id": "arq2_org_1783230782425",
+      "tipo": "lote-organico",
+      "puntos": [
+        [
+          -66.445,
+          36.153
+        ],
+        [
+          -66.586,
+          11.652
+        ],
+        [
+          -74.147,
+          5.027
+        ],
+        [
+          -74.34068191960502,
+          42.67829713700059
+        ]
+      ],
+      "sharedSegs": [
+        0
+      ],
+      "sharedSegStyles": {
+        "0": "punteada"
+      },
+      "sharedSegMeta": {
+        "0": {
+          "lineId": "arq2_org_1783230680900",
+          "segIdx": 5,
+          "isStreet": false
+        }
+      },
+      "suavizadoIntensidad": 10,
+      "arq2Numero": "11",
+      "franjaNumero": "11",
       "loteStatus": "disponible"
     }
   ],
