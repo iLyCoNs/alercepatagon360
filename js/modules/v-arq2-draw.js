@@ -1,13 +1,7 @@
-function arq2_finishLoteOrganico(rawPoints, useCostura) {
-    const minPts = useCostura ? 2 : 3;
-    if (!rawPoints || rawPoints.length < minPts) return;
-    // Snap vertices to existing neighbor polygons for both costura and standard lote-libre
-    // so they align perfectly without gaps or overlaps
-    let snappedRaw = arq2_snapVerticesToExisting(rawPoints);
+window.arq2_getSnapGeometry = function(rawPoints, useCostura = false) {
+    let snappedOriginals = arq2_snapVerticesToExisting(rawPoints);
+    let snappedRaw = snappedOriginals;
     
-    // FIX: Calco Perfecto (Lote Libre se une automáticamente a la curva de la calle).
-    // Si dos vértices consecutivos de este lote fueron anclados (snapped) al mismo borde de la misma calle,
-    // rellenamos el espacio con todos los puntos intermedios de esa curva de calle para crear un empalme perfecto.
     if (!useCostura && snappedRaw.length >= 3) {
         let tracedPoints = [];
         for (let i = 0; i < snappedRaw.length; i++) {
@@ -26,7 +20,6 @@ function arq2_finishLoteOrganico(rawPoints, useCostura) {
                         let idx1 = snap1.pointIndex;
                         let idx2 = snap2.pointIndex;
                         let step = idx2 > idx1 ? 1 : -1;
-                        // Insertar puntos intermedios de la curva
                         for (let j = idx1 + step; j !== idx2; j += step) {
                             if (edgePts[j]) {
                                 tracedPoints.push([edgePts[j][0], edgePts[j][1], { ...snap1, pointIndex: j }]);
@@ -38,8 +31,17 @@ function arq2_finishLoteOrganico(rawPoints, useCostura) {
         }
         snappedRaw = tracedPoints;
     }
-    
     const anchors = snappedRaw.map(p => [...p]);
+    return { snappedRaw, anchors, snappedOriginals };
+};
+
+function arq2_finishLoteOrganico(rawPoints, useCostura) {
+    const minPts = useCostura ? 2 : 3;
+    if (!rawPoints || rawPoints.length < minPts) return;
+    
+    const geoSnap = window.arq2_getSnapGeometry(rawPoints, useCostura);
+    let snappedRaw = geoSnap.snappedRaw;
+    const anchors = geoSnap.anchors;
     const smoothIntensity = arq2SmoothIntensity;
     let smoothed;
 
