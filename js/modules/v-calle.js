@@ -90,17 +90,10 @@ function arq2_smoothCalleAxis(points) {
     const steps = Math.max(12, (points.length - 1) * 6); 
     if (curvatura <= 0) return arq2_resamplePolylineGroundStraight(points, steps); 
     
-    const catmull = arq2_catmullRomOpen(points, 12);
-    if (curvatura >= 10) return catmull;
-    
-    const t = curvatura / 10;
-    const rawResample = arq2_resamplePolylineGroundStraight(points, catmull.length - 1);
-    if (!rawResample || rawResample.length !== catmull.length) return catmull;
-    
-    return catmull.map((c, i) => {
-        const r = rawResample[i] || c;
-        return [r[0] + (c[0] - r[0]) * t, r[1] + (c[1] - r[1]) * t];
-    });
+    // FIX: Se elimina la mezcla lineal (blend) con rawResample que causaba 
+    // que la curva se alejara de los nodos de control originales.
+    // Catmull-Rom pasa EXACTAMENTE por todos los puntos de control, logrando un calco perfecto.
+    return arq2_catmullRomOpen(points, 12);
 }
 
 function arq2_estimateScreenCurvatureRadius(points, i, proj) {

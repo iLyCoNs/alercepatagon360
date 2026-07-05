@@ -52,14 +52,23 @@ function syncSVGElements() {
                 lAristas.appendChild(pGuide);
                 DOMCache.paths[line.id] = { base: [pGuide] };
             } else if (line.tipo === 'calle-curva-arq2' || line.tipo === 'calle-curva-arq2-preview') {
-                const gCalle = document.createElementNS("http://www.w3.org/2000/svg", "g");
-                gCalle.dataset.lineId = line.id;
-                gCalle.dataset.tipo = line.tipo;
-                gCalle.classList.add('calle-curva-arq2-grupo');
+                let lFills = document.getElementById('layer-calles-arq2-fills');
+                let lBordes = document.getElementById('layer-calles-arq2-bordes');
+                let lCenters = document.getElementById('layer-calles-arq2-centers');
+                if (!lFills) {
+                    lBordes = document.createElementNS("http://www.w3.org/2000/svg", "g"); lBordes.id = 'layer-calles-arq2-bordes';
+                    lFills = document.createElementNS("http://www.w3.org/2000/svg", "g"); lFills.id = 'layer-calles-arq2-fills';
+                    lCenters = document.createElementNS("http://www.w3.org/2000/svg", "g"); lCenters.id = 'layer-calles-arq2-centers';
+                    lCallesArq2.appendChild(lBordes);
+                    lCallesArq2.appendChild(lFills);
+                    lCallesArq2.appendChild(lCenters);
+                }
+                
                 const mkPath = (cls, edge) => {
                     const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
                     p.setAttribute('class', cls);
                     if (edge) p.dataset.edgeRole = edge;
+                    bindSvgEraser(p, line.id);
                     return p;
                 };
                 const pFill = mkPath('linea-calle-arq2-fill');
@@ -68,14 +77,19 @@ function syncSVGElements() {
                 const pCapStart = mkPath('linea-calle-arq2-borde', 'cap-start');
                 const pCapEnd = mkPath('linea-calle-arq2-borde', 'cap-end');
                 const pCenter = mkPath('linea-calle-arq2-centro', 'center');
-                gCalle.appendChild(pFill);
-                gCalle.appendChild(pLeft);
-                gCalle.appendChild(pRight);
-                gCalle.appendChild(pCapStart);
-                gCalle.appendChild(pCapEnd);
-                gCalle.appendChild(pCenter);
-                bindSvgEraser(gCalle, line.id);
-                lCallesArq2.appendChild(gCalle);
+                
+                lFills.appendChild(pFill);
+                lBordes.appendChild(pLeft);
+                lBordes.appendChild(pRight);
+                lBordes.appendChild(pCapStart);
+                lBordes.appendChild(pCapEnd);
+                lCenters.appendChild(pCenter);
+                
+                // Virtual gNode for DOMCache compatibility
+                const gCalle = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                gCalle.dataset.lineId = line.id;
+                gCalle.dataset.tipo = line.tipo;
+                
                 DOMCache.paths[line.id] = { gNode: gCalle, base: [pFill, pLeft, pRight, pCapStart, pCapEnd, pCenter] };
             } else if (line.tipo === 'lote-organico' || line.tipo === 'fila-variable-lote') {
                 const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
@@ -141,29 +155,23 @@ function syncSVGElements() {
                 const gNode = svg.querySelector(`g[data-line-id="${line.id}"]`);
                 if (gNode) {
                     gNode.dataset.tipo = line.tipo;
-                    const targetLayer = resolveSvgLayerForLine(line, { lBordes, lAsfalto, lLotes, lAristas });
-                    if (targetLayer && gNode.parentNode !== targetLayer) targetLayer.appendChild(gNode);
-                    const pBase = gNode.querySelector('path');
-                    if (pBase) pBase.setAttribute('class', getPathClassForLine(line));
-                    if (line.tipo === 'lote-organico' || line.tipo === 'fila-variable-lote') {
-                        gNode.style.isolation = 'isolate';
-                        gNode.style.mixBlendMode = 'normal';
-                        arq2_ensureOrganicPathLayers(gNode, line);
-                    } else if (line.tipo === 'calle-curva-arq2' || line.tipo === 'calle-curva-arq2-preview') {
-                        const targetLayer = lCallesArq2 || resolveSvgLayerForLine(line, { lBordes, lAsfalto, lLotes, lAristas });
+                    if (line.tipo === 'calle-curva-arq2' || line.tipo === 'calle-curva-arq2-preview') {
+                        // For GIS street rendering, paths are appended globally to layer-calles-arq2 sub-groups.
+                        // We do not manage them inside a physical gNode.
+                    } else {
+                        const targetLayer = resolveSvgLayerForLine(line, { lBordes, lAsfalto, lLotes, lAristas });
                         if (targetLayer && gNode.parentNode !== targetLayer) targetLayer.appendChild(gNode);
-                        let paths = Array.from(gNode.querySelectorAll('path'));
-                        while (paths.length < 6) {
-                            const pExtra = document.createElementNS("http://www.w3.org/2000/svg", "path");
-                            pExtra.setAttribute('class', paths.length === 0 ? 'linea-calle-arq2-fill' : (paths.length === 5 ? 'linea-calle-arq2-centro' : 'linea-calle-arq2-borde'));
-                            if (paths.length === 5) pExtra.dataset.edgeRole = 'center';
-                            gNode.appendChild(pExtra);
-                            paths = Array.from(gNode.querySelectorAll('path'));
+                        const pBase = gNode.querySelector('path');
+                        if (pBase) pBase.setAttribute('class', getPathClassForLine(line));
+                        if (line.tipo === 'lote-organico' || line.tipo === 'fila-variable-lote') {
+                            gNode.style.isolation = 'isolate';
+                            gNode.style.mixBlendMode = 'normal';
+                            arq2_ensureOrganicPathLayers(gNode, line);
                         }
+                        bindSvgEraser(gNode, line.id);
+                        if (pBase) bindSvgEraser(pBase, line.id);
+                        DOMCache.paths[line.id] = { gNode: gNode, base: Array.from(gNode.querySelectorAll('path')) };
                     }
-                    bindSvgEraser(gNode, line.id);
-                    if (pBase) bindSvgEraser(pBase, line.id);
-                    DOMCache.paths[line.id] = { gNode: gNode, base: Array.from(gNode.querySelectorAll('path')) };
                 }
             }
         }
