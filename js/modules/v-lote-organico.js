@@ -566,7 +566,8 @@ function arq2_snapVerticesToExisting(points) {
                 if (d < bestD) { bestD = d; best = [nearX, nearY]; }
             }
         });
-        return best ? [parseFloat(best[0].toFixed(4)), parseFloat(best[1].toFixed(4))] : [...pt];
+        // FIX: Preservar el tercer elemento (pt[2]) que contiene los metadatos del anclaje (CosturaSnap).
+        return best ? [parseFloat(best[0].toFixed(4)), parseFloat(best[1].toFixed(4)), pt[2]] : [...pt];
     });
 }
 

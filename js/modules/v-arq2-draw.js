@@ -3,7 +3,42 @@ function arq2_finishLoteOrganico(rawPoints, useCostura) {
     if (!rawPoints || rawPoints.length < minPts) return;
     // Snap vertices to existing neighbor polygons for both costura and standard lote-libre
     // so they align perfectly without gaps or overlaps
-    const snappedRaw = arq2_snapVerticesToExisting(rawPoints);
+    let snappedRaw = arq2_snapVerticesToExisting(rawPoints);
+    
+    // FIX: Calco Perfecto (Lote Libre se une automáticamente a la curva de la calle).
+    // Si dos vértices consecutivos de este lote fueron anclados (snapped) al mismo borde de la misma calle,
+    // rellenamos el espacio con todos los puntos intermedios de esa curva de calle para crear un empalme perfecto.
+    if (!useCostura && snappedRaw.length >= 3) {
+        let tracedPoints = [];
+        for (let i = 0; i < snappedRaw.length; i++) {
+            let curr = snappedRaw[i];
+            let next = snappedRaw[(i + 1) % snappedRaw.length];
+            tracedPoints.push(curr);
+            
+            let snap1 = curr[2];
+            let snap2 = next[2];
+            
+            if (snap1 && snap2 && snap1.lineId === snap2.lineId && snap1.edgeType === snap2.edgeType) {
+                const street = allDrawnLines.find(l => l.id === snap1.lineId);
+                if (street) {
+                    const edgePts = snap1.edgeType === 'left' ? street.left : (snap1.edgeType === 'right' ? street.right : street.puntosSuavizados);
+                    if (edgePts && edgePts.length > 0) {
+                        let idx1 = snap1.pointIndex;
+                        let idx2 = snap2.pointIndex;
+                        let step = idx2 > idx1 ? 1 : -1;
+                        // Insertar puntos intermedios de la curva
+                        for (let j = idx1 + step; j !== idx2; j += step) {
+                            if (edgePts[j]) {
+                                tracedPoints.push([edgePts[j][0], edgePts[j][1], { ...snap1, pointIndex: j }]);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        snappedRaw = tracedPoints;
+    }
+    
     const anchors = snappedRaw.map(p => [...p]);
     const smoothIntensity = arq2SmoothIntensity;
     let smoothed;
