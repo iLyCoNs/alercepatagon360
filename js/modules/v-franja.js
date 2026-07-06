@@ -427,11 +427,29 @@ function bindSvgEraser(el, lineId) {
     if (!el || el.dataset.eraserBound) return;
     el.dataset.eraserBound = '1';
     const onErase = (e) => {
-        if (currentLineType !== 'eraser' && arq2Tool !== 'eraser') return;
-        e.stopPropagation(); e.preventDefault();
-        applyEraserDelete(lineId);
-        refreshAllHotspots(true);
-        saveToLocal();
+        if (currentLineType === 'eraser' || arq2Tool === 'eraser') {
+            e.stopPropagation(); e.preventDefault();
+            applyEraserDelete(lineId);
+            refreshAllHotspots(true);
+            saveToLocal();
+        } else if (isArquitecto2Active && arq2Tool === 'calle-curva-arq2') {
+            const line = allDrawnLines.find(l => l.id === lineId && l.tipo === 'calle-curva-arq2');
+            if (line) {
+                e.stopPropagation(); e.preventDefault();
+                arq2SelectedLineId = lineId;
+                arq2CalleCurvaAncho = line.calleCurvaAncho || 8;
+                draftCalleCurvaCurvatura = line.calleCurvaCurvatura ?? 5;
+                draftCalleCurvaAlpha = line.calleCurvaAlpha ?? 0.55;
+                arq2CalleRetorno = line.calleRetorno ?? false;
+                
+                if (typeof arq2_syncCalleCurvaPanelUI === 'function') arq2_syncCalleCurvaPanelUI();
+                
+                const flash = document.createElement('div');
+                flash.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(255,255,255,0.1);z-index:999999999;pointer-events:none;transition:opacity 0.3s;';
+                document.body.appendChild(flash);
+                setTimeout(() => { flash.style.opacity = '0'; }, 50); setTimeout(() => { flash.remove(); }, 350);
+            }
+        }
     };
     el.addEventListener('mousedown', onErase);
     el.addEventListener('touchstart', onErase, { passive: false });

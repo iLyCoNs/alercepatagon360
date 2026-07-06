@@ -707,9 +707,24 @@ function arq2_ensurePanelExtras() {
             '<div style="margin-top: 6px; display: flex; align-items: center; gap: 8px;"><input type="checkbox" id="arq2-calle-no-snap" style="cursor:pointer;"><label for="arq2-calle-no-snap" style="cursor:pointer; margin: 0; font-size: 11px; color: #fca5a5;">Despejar puntos de arrastre (Sin imán)</label></div>';
 
         document.getElementById('arq2-smooth-row')?.insertAdjacentElement('afterend', rowEl);
+        
+        const arq2_updateSelectedCalleCurva = () => {
+            if (arq2SelectedLineId) {
+                const line = allDrawnLines.find(l => l.id === arq2SelectedLineId);
+                if (line && line.tipo === 'calle-curva-arq2') {
+                    line.calleCurvaAncho = arq2CalleCurvaAncho;
+                    line.calleCurvaCurvatura = draftCalleCurvaCurvatura;
+                    line.calleCurvaAlpha = draftCalleCurvaAlpha;
+                    line.calleRetorno = arq2CalleRetorno;
+                    saveToLocal();
+                }
+            }
+        };
+
         document.getElementById('arq2-calle-ancho')?.addEventListener('input', (e) => {
             arq2CalleCurvaAncho = Math.max(4, Math.min(15, parseFloat(e.target.value) || 8));
             arq2_syncCalleCurvaPanelUI();
+            arq2_updateSelectedCalleCurva();
             syncSVGElements();
             updateSVGPaths();
         });
@@ -717,19 +732,35 @@ function arq2_ensurePanelExtras() {
             draftCalleCurvaCurvatura = Math.max(0, Math.min(10, parseInt(e.target.value, 10) || 0));
             const valEl = document.getElementById('arq2-calle-curvatura-val');
             if (valEl) valEl.textContent = draftCalleCurvaCurvatura;
+            arq2_updateSelectedCalleCurva();
             syncSVGElements();
             updateSVGPaths();
         });
         document.getElementById('arq2-calle-retorno')?.addEventListener('change', (e) => {
-
             arq2CalleRetorno = !!e.target.checked;
+            arq2_updateSelectedCalleCurva();
             syncSVGElements();
             updateSVGPaths();
         });
         document.getElementById('arq2-calle-no-snap')?.addEventListener('change', (e) => {
             document.body.classList.toggle('calle-no-snap-active', e.target.checked);
         });
-        arq2_bindCalleCurvaAlphaSlider();
+        
+        // Ensure alpha slider syncs selected street too if redefined inline
+        const oldBind = window.arq2_bindCalleCurvaAlphaSlider;
+        window.arq2_bindCalleCurvaAlphaSlider = function() {
+            const alphaEl = document.getElementById('arq2-calle-alpha');
+            if (!alphaEl || alphaEl.dataset.boundUpdated === '1') return;
+            alphaEl.dataset.boundUpdated = '1';
+            alphaEl.addEventListener('input', (e) => {
+                draftCalleCurvaAlpha = Math.max(0.15, Math.min(1, parseFloat(e.target.value) || 0.55));
+                arq2_syncCalleCurvaPanelUI();
+                arq2_updateSelectedCalleCurva();
+                syncSVGElements();
+                updateSVGPaths();
+            });
+        };
+        window.arq2_bindCalleCurvaAlphaSlider();
     } else if (!document.getElementById('arq2-calle-alpha') && document.getElementById('arq2-calle-curva-row')) {
         const alphaWrap = document.createElement('div');
         alphaWrap.innerHTML = '<label>Transparencia <span id="arq2-calle-alpha-val">55%</span></label><input type="range" id="arq2-calle-alpha" min="0.15" max="1" step="0.05" value="0.55">';
