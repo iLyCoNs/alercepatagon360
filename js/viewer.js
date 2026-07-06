@@ -3908,13 +3908,19 @@ function arq2_isLineClosedForSnap(line) {
     return pts.length >= 3;
 }
 function arq2_findNearestEdgeOrVertex(screenX, screenY, excludeLineId, radiusPx = 15) {
-    if (arq2Tool === 'calle-curva-arq2' && document.getElementById('arq2-calle-no-snap')?.checked) return null;
+    if (document.getElementById('arq2-calle-no-snap')?.checked) return null;
     const proj = getPanoramaScreenProjector();
     if (!proj) return null;
     const sx = screenX - DOMCache.viewport.left, sy = screenY - DOMCache.viewport.top;
     // Use only the provided radius (no forced minimum) so snap isn't too aggressive in tight areas
     const effectiveRadius = Math.max(radiusPx, 14);
     let best = null, bestD = effectiveRadius;
+
+    let isDraggingStreet = false;
+    if (excludeLineId) {
+        const exclLine = allDrawnLines.find(l => l.id === excludeLineId);
+        if (exclLine && (exclLine.tipo === 'calle-curva-arq2' || exclLine.tipo === 'calle')) isDraggingStreet = true;
+    }
 
     const tryPt = (pitch, yaw, meta) => {
         const sc = proj.toScreen(pitch, yaw);
@@ -3924,9 +3930,9 @@ function arq2_findNearestEdgeOrVertex(screenX, screenY, excludeLineId, radiusPx 
     };
     allDrawnLines.forEach(line => {
         if (line.id === excludeLineId || !arq2_isUniversalSnapTarget(line)) return;
-        // When drawing a street, ONLY snap to other street edges - NOT to lote polygon vertices
-        // (snapping to lot vertices causes the street path to jump/hook unexpectedly)
-        const isDrawingStreet = arq2Tool === 'calle-curva-arq2';
+        // When drawing or dragging a street, ONLY snap to other street edges - NOT to lote polygon vertices
+        // (snapping to lot vertices causes the street path to jump/hook unexpectedly and overlaps half the street)
+        const isDrawingStreet = arq2Tool === 'calle-curva-arq2' || isDraggingStreet;
         if (isDrawingStreet && line.tipo !== 'calle-curva-arq2' && line.tipo !== 'calle-curva-arq2-preview' && line.tipo !== 'calle') return;
 
         if (line.tipo === 'calle-curva-arq2' || line.tipo === 'calle-curva-arq2-preview') {
