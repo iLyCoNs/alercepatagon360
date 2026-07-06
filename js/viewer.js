@@ -3360,12 +3360,9 @@ function arq2_getCalleCurvaAlpha(lineData) {
 function arq2_applyCalleCurvaFillStyle(pathEl, alpha) {
     if (!pathEl) return;
     const a = arq2_getCalleCurvaAlpha({ calleCurvaAlpha: alpha });
-    pathEl.setAttribute('fill', `rgba(255,255,255,${a})`);
-    pathEl.setAttribute('stroke', 'none');
-    // evenodd fill-rule ensures closed-loop streets render as a ring (not solid white)
     pathEl.setAttribute('fill-rule', 'evenodd');
-    pathEl.style.fill = `rgba(255,255,255,${a})`;
     pathEl.style.fillRule = 'evenodd';
+    pathEl.style.fillOpacity = a;
 }
 
 function arq2_buildCalleCurvaGeometry(ejeOriginal, anchoFactor, alphaFactor, calleRetorno = false) {

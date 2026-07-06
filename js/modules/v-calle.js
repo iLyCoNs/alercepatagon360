@@ -401,12 +401,11 @@ function arq2_getCalleCurvaAlpha(lineData) {
 function arq2_applyCalleCurvaFillStyle(pathEl, alpha) {
     if (!pathEl) return;
     const a = arq2_getCalleCurvaAlpha({ calleCurvaAlpha: alpha });
-    // Let CSS handle the fill color for premium styling (.linea-calle-arq2-fill)
-    pathEl.setAttribute('stroke', 'none');
     pathEl.setAttribute('fill-rule', 'evenodd');
     pathEl.style.fillRule = 'evenodd';
-    const layer = document.getElementById('layer-calles-arq2');
-    if (layer) layer.style.opacity = a;
+    pathEl.style.fillOpacity = a;
+    
+    // Do not alter layer opacity globally, rely on per-path fillOpacity.
 }
 
 function arq2_buildCalleCurvaGeometry(ejeOriginal, anchoFactor, alphaFactor, calleRetorno = false) {
