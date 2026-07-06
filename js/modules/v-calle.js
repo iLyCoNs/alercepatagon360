@@ -136,17 +136,19 @@ function arq2_enforceMinCurveRadius(smoothedPoints, minRadiusPx) {
     const minR = Math.max(1, minRadiusPx || 1);
     for (let pass = 0; pass < 10; pass++) {
         let changed = false;
+        let newPts = pts.map(p => [...p]);
         for (let i = 1; i < pts.length - 1; i++) {
             const r = arq2_estimateScreenCurvatureRadius(pts, i, proj);
             if (r < minR) {
                 const prev = pts[i - 1], next = pts[i + 1];
-                pts[i] = [
-                    parseFloat(((prev[0] + pts[i][0] + next[0]) / 3).toFixed(4)),
-                    parseFloat(((prev[1] + pts[i][1] + next[1]) / 3).toFixed(4))
+                newPts[i] = [
+                    parseFloat(((prev[0] + pts[i][0] + next[0]) / 3).toFixed(5)),
+                    parseFloat(((prev[1] + pts[i][1] + next[1]) / 3).toFixed(5))
                 ];
                 changed = true;
             }
         }
+        pts = newPts;
         if (!changed) break;
         if (pass === 4 || pass === 8) pts = arq2_chaikinOpenSmoothOnce(pts);
     }
@@ -412,8 +414,10 @@ function arq2_buildCalleCurvaGeometry(ejeOriginal, anchoFactor, alphaFactor, cal
     let eje = arq2_smoothCalleAxis(ejeOriginal);
     // Use screen-pixel half-width: same visual formula as old "calle" tool
     const halfWidthPx = arq2_getCalleCurvaHalfWidthPxDyn(anchoFactor);
-    // Minimum curve radius in screen pixels to avoid overly tight bends
-    eje = arq2_enforceMinCurveRadius(eje, halfWidthPx * 1.3);
+    // Minimum curve radius in screen pixels to avoid overly tight bends (only if they want curvature)
+    if (draftCalleCurvaCurvatura > 0) {
+        eje = arq2_enforceMinCurveRadius(eje, halfWidthPx * 1.3);
+    }
     // Detect if the user drew a closed loop (manzana)
     const ejeIsClosed = arq2_isCalleEjeClosed(ejeOriginal);
     let left, right;
