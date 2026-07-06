@@ -857,5 +857,26 @@ function applyDraggedVertexCoords(coords) {
         }
         return;
     }
+    if (linea.tipo === 'lote-organico' || linea.tipo === 'fila-variable-lote') {
+        if (linea.ejeOriginal) {
+            linea.ejeOriginal[draggingVertex.idx] = [coords[0], coords[1]];
+            const smoothIntensity = typeof linea.suavizadoIntensidad !== 'undefined' ? linea.suavizadoIntensidad : (typeof arq2SmoothIntensity !== 'undefined' ? arq2SmoothIntensity : 5);
+            const useCostura = !!(linea.costuraEstilo || linea.costuraStyle);
+            let smoothed;
+            if (useCostura) {
+                smoothed = typeof arq2_adaptiveSmooth === 'function' ? arq2_adaptiveSmooth(linea.ejeOriginal, null, Math.min(smoothIntensity, 2)) : linea.ejeOriginal;
+                if (typeof arq2_restoreAnchoredVertices === 'function') smoothed = arq2_restoreAnchoredVertices(smoothed, linea.ejeOriginal, 0.04);
+                if (typeof arq2_clipCosturaToParent === 'function') smoothed = arq2_clipCosturaToParent(smoothed);
+            } else {
+                smoothed = typeof arq2_adaptiveSmooth === 'function' ? arq2_adaptiveSmooth(linea.ejeOriginal, null, smoothIntensity) : linea.ejeOriginal;
+                if (typeof arq2_restoreAnchoredVertices === 'function') smoothed = arq2_restoreAnchoredVertices(smoothed, linea.ejeOriginal, 0.08);
+            }
+            if (typeof arq2_sanitizePolylinePoints === 'function') smoothed = arq2_sanitizePolylinePoints(smoothed);
+            if (smoothed && smoothed.length >= 3) linea.puntos = smoothed;
+        } else {
+            linea.puntos[draggingVertex.idx] = [coords[0], coords[1]];
+        }
+        return;
+    }
     linea.puntos[draggingVertex.idx] = [coords[0], coords[1]];
 }
