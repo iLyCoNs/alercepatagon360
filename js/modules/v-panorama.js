@@ -382,8 +382,10 @@ function bindPanoramaPointerEvents() {
     container.addEventListener('pointerdown', handleStart, { passive: false, capture: true });
     window.addEventListener('mouseup', handleEnd);
     window.addEventListener('touchend', handleEnd);
+    window.addEventListener('pointerup', handleEnd);
     window.addEventListener('mousemove', handleMove);
     window.addEventListener('touchmove', handleMove, { passive: false });
+    window.addEventListener('pointermove', handleMove, { passive: false });
 
     // =====================================================================
     // FIX RAÍZ — Smart Pin sobre polígono SVG
