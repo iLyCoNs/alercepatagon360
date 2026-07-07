@@ -1,5 +1,6 @@
 function generarSmartPin(hotSpotDiv, args) {
     hotSpotDiv.style.width = '0px'; hotSpotDiv.style.height = '0px'; hotSpotDiv.setAttribute('data-status', args.status || 'disponible');
+    hotSpotDiv.setAttribute('data-pitch', args.pitch); hotSpotDiv.setAttribute('data-yaw', args.yaw);
     hotSpotDiv.addEventListener('mouseenter', () => { hotSpotDiv.style.zIndex = '999999'; }); hotSpotDiv.addEventListener('mouseleave', () => { hotSpotDiv.style.zIndex = ''; });
     
     // TRUCO SUPREMO ARQUITECTO 2.0: Mover físicamente el pin fuera del encierro WebGL
@@ -85,6 +86,7 @@ function generarPin360(hotSpotDiv, args) {
 
 function generarMarcadorHorizonte(hotSpotDiv, args) {
     hotSpotDiv.style.width = '0px'; hotSpotDiv.style.height = '0px';
+    hotSpotDiv.setAttribute('data-pitch', args.pitch); hotSpotDiv.setAttribute('data-yaw', args.yaw);
     
     // TRUCO SUPREMO ARQUITECTO 2.0: Mover físicamente el pin fuera del encierro WebGL
     const hologui = document.getElementById('holographic-ui-engine');
@@ -105,6 +107,7 @@ function generarMarcadorHorizonte(hotSpotDiv, args) {
 
 function generarMarcadorRuta(hotSpotDiv, args) {
     hotSpotDiv.style.width = '0px'; hotSpotDiv.style.height = '0px';
+    hotSpotDiv.setAttribute('data-pitch', args.pitch); hotSpotDiv.setAttribute('data-yaw', args.yaw);
     
     // TRUCO SUPREMO ARQUITECTO 2.0: Mover físicamente el pin fuera del encierro WebGL
     const hologui = document.getElementById('holographic-ui-engine');
@@ -120,6 +123,7 @@ function generarMarcadorRuta(hotSpotDiv, args) {
 
 function generarMarcadorCasa360(hotSpotDiv, args) {
     hotSpotDiv.style.width = '0px'; hotSpotDiv.style.height = '0px';
+    hotSpotDiv.setAttribute('data-pitch', args.pitch); hotSpotDiv.setAttribute('data-yaw', args.yaw);
     
     // TRUCO SUPREMO ARQUITECTO 2.0: Mover físicamente el pin fuera del encierro WebGL
     const hologui = document.getElementById('holographic-ui-engine');

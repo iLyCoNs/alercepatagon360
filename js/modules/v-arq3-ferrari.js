@@ -65,6 +65,23 @@ window.arquitecto3D = {
             });
         }
 
+        // El botón Pin V2
+        const btnPin = document.querySelector('.arq2-tool-btn[data-arq2-tool="smart-pin-v2"]');
+        if (btnPin) {
+            btnPin.addEventListener('click', () => {
+                if (this.isActive) {
+                    this.currentTool = 'smart-pin';
+                    this.clearTemp();
+                    const row = document.getElementById('arq2-calle-curva-row');
+                    if (row) row.style.display = 'none';
+                    // Abrir el sub-menú de pines de Arq 2.0 si existe
+                    if (typeof window.abrirSubMenuPines === 'function') {
+                        window.abrirSubMenuPines();
+                    }
+                }
+            });
+        }
+
         // Inyectar grupos al encontrar el Motor Ferrari activo
         const checkFerrari = setInterval(() => {
             if (window.visor360 && window.visor360.getThreeScene) {
@@ -93,7 +110,9 @@ window.arquitecto3D = {
                         });
                     });
 
+                    this.startHologramLoop();
                     this.bindEvents();
+                    console.log("Motor Ferrari Inicializado correctamente.");
                     clearInterval(checkFerrari);
                     console.log("Arquitecto 3.0 enlazado al Motor Ferrari.");
                 }
@@ -166,6 +185,41 @@ window.arquitecto3D = {
         return null;
     },
 
+    startHologramLoop: function() {
+        if (this.hologramLoopActive) return;
+        this.hologramLoopActive = true;
+        const hologui = document.getElementById('holographic-ui-engine');
+        
+        const loop = () => {
+            if (this.isActive && window.visor360 && hologui) {
+                const camera = window.visor360.getThreeCamera();
+                if (camera) {
+                    const pins = hologui.querySelectorAll('[data-pitch][data-yaw]');
+                    pins.forEach(pin => {
+                        const pitch = parseFloat(pin.getAttribute('data-pitch'));
+                        const yaw = parseFloat(pin.getAttribute('data-yaw'));
+                        if (!isNaN(pitch) && !isNaN(yaw)) {
+                            // Proyectar desde el motor 3D en lugar del motor 2D de Pannellum
+                            const pos3D = window.visor360.getVectorFromPitchYaw(pitch, yaw);
+                            pos3D.project(camera);
+                            
+                            if (pos3D.z > 1) { // Detrás de cámara
+                                pin.style.display = 'none';
+                            } else {
+                                pin.style.display = '';
+                                const x = (pos3D.x * .5 + .5) * window.innerWidth;
+                                const y = (pos3D.y * -.5 + .5) * window.innerHeight;
+                                pin.style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%)`;
+                            }
+                        }
+                    });
+                }
+            }
+            requestAnimationFrame(loop);
+        };
+        loop();
+    },
+
     bindEvents: function() {
         const container = document.getElementById('panorama-container');
         let startX, startY, startTime;
@@ -173,6 +227,43 @@ window.arquitecto3D = {
         container.addEventListener('pointerdown', (e) => {
             if (!this.isActive) return;
             
+            // Si estamos en modo Pin V2, insertar pin
+            if (this.currentTool === 'smart-pin') {
+                e.stopPropagation(); // Prevenir panning
+                this.raycaster.setFromCamera(this.mouse, window.visor360.getThreeCamera());
+                const groundIntersection = this.raycaster.intersectObject(this.holographicSphere)[0];
+                if (groundIntersection) {
+                    const pt = groundIntersection.point;
+                    const pitch = Math.asin(pt.y / pt.length()) * 180 / Math.PI;
+                    const yaw = Math.atan2(pt.x, pt.z) * 180 / Math.PI;
+                    
+                    let tipoFinal = window.arq2PinSubTool || 'lote';
+                    let tituloFinal = 'Lote 00';
+                    
+                    if (tipoFinal === 'horizonte') tituloFinal = prompt('📍 PIN HORIZONTE\nTítulo (ej: Volcán Osorno):');
+                    else if (tipoFinal === 'ruta') tituloFinal = prompt('🚗 PIN RUTA\nTítulo (ej: Ruta V-30):');
+                    else if (tipoFinal === 'vista360') tituloFinal = 'VISTA 360';
+                    else if (tipoFinal === 'casa360') tituloFinal = 'CASA TOUR';
+                    
+                    if (tipoFinal !== 'lote' && tituloFinal === null) return; // Cancelado
+
+                    let nuevoPin = {
+                        pitch: parseFloat(pitch.toFixed(3)),
+                        yaw: parseFloat(yaw.toFixed(3)),
+                        id: 'draft_' + Date.now(),
+                        numero: '',
+                        tipo: tipoFinal,
+                        status: 'disponible',
+                        titulo: tituloFinal
+                    };
+
+                    if (typeof openPinEditor === 'function') {
+                        openPinEditor(nuevoPin, true); // Modal nativo de Arq 2.0
+                    }
+                }
+                return;
+            }
+
             // Si estamos en modo goma
             if (this.currentTool === 'eraser') {
                 const loteInfo = this.getIntersectedLote(e);
