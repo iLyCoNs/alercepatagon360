@@ -794,4 +794,137 @@ function arq2_ensurePanelExtras() {
         arq2_bindCalleCurvaAlphaSlider();
     }
     arq2_syncCalleCurvaPanelUI();
+    // Bindear fila de pines Arq2 (idempotente)
+    arq2_bindPinRowButtons();
+}
+
+// =====================================================================
+// ARQUITECTO 2.0 — Sistema de Pines (calco del Modo Pines Ctrl+P)
+// =====================================================================
+
+let arq2PinSubTool = null; // 'horizonte' | 'ruta' | 'vista360' | 'casa360' | null
+
+/**
+ * Activa/desactiva un subtipo de pin en el panel Arq2.
+ * Toggle: si ya estaba activo lo desactiva; si no, lo activa.
+ * Gestiona ghost-mode para polígonos SVG.
+ */
+function arq2_setPinSubTool(tipo) {
+    if (arq2PinSubTool === tipo) {
+        // Toggle off
+        arq2PinSubTool = null;
+    } else {
+        arq2PinSubTool = tipo;
+    }
+
+    // Ghost Mode: desactiva pointer-events en polígonos cuando hay un pin activo
+    const pinActivo = arq2PinSubTool !== null;
+    document.body.classList.toggle('arq2-pin-active', pinActivo);
+
+    // Marcar visualmente el botón activo
+    document.querySelectorAll('.arq2-pin-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.arq2Pin === arq2PinSubTool);
+    });
+
+    // Desactivar Línea Pines si estaba activa
+    if (pinActivo && typeof deactivateLineaPines === 'function') {
+        deactivateLineaPines();
+    }
+    
+    // Desmarcar arq2-btn-linea-pines
+    document.getElementById('arq2-btn-linea-pines')?.classList.toggle('active', false);
+}
+
+/**
+ * Bindea los botones de la fila de pines Arq2 (idempotente — no duplica listeners).
+ */
+function arq2_bindPinRowButtons() {
+    // — Botones de tipo pin (Horizonte, Ruta, 360°, Casa) —
+    document.querySelectorAll('.arq2-pin-btn').forEach(btn => {
+        if (btn.dataset.pinRowBound) return;
+        btn.dataset.pinRowBound = '1';
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const tipo = btn.dataset.arq2Pin;
+            arq2_setPinSubTool(tipo);
+        });
+    });
+
+    // — Línea Pines —
+    const btnLP = document.getElementById('arq2-btn-linea-pines');
+    if (btnLP && !btnLP.dataset.arq2Bound) {
+        btnLP.dataset.arq2Bound = '1';
+        btnLP.addEventListener('click', (e) => {
+            e.stopPropagation();
+            // Asegurar que el modo pines esté activo para que handleLineaPinesClick funcione
+            if (!window.isDevModePinsActive) {
+                if (typeof togglePinsMode === 'function') togglePinsMode(true);
+            }
+            if (typeof isLineaPinesActive !== 'undefined' && isLineaPinesActive) {
+                if (typeof deactivateLineaPines === 'function') deactivateLineaPines();
+                btnLP.classList.remove('active');
+            } else {
+                if (typeof activateLineaPines === 'function') activateLineaPines();
+                btnLP.classList.add('active');
+            }
+            // Cancelar pin subtool si había uno activo
+            if (arq2PinSubTool) arq2_setPinSubTool(null);
+        });
+    }
+
+    // — Origen Drone —
+    const btnDrone = document.getElementById('arq2-btn-drone');
+    if (btnDrone && !btnDrone.dataset.arq2Bound) {
+        btnDrone.dataset.arq2Bound = '1';
+        btnDrone.addEventListener('click', () => {
+            // Reusar el mismo handler que el botón clásico (o reproducirlo inline)
+            const existingBtn = document.getElementById('btn-set-drone');
+            if (existingBtn) { existingBtn.click(); return; }
+            // Fallback inline (idéntico al handler de v-pins.js)
+            let val = prompt('Fijar Coordenada del Drone (Lat, Lng)\nEj: -41.3245, -72.9832',
+                window.OrigenDrone ? `${window.OrigenDrone.lat}, ${window.OrigenDrone.lng}` : '');
+            if (val && val.includes(',')) {
+                let parts = val.split(',');
+                window.OrigenDrone = { lat: parseFloat(parts[0].trim()), lng: parseFloat(parts[1].trim()) };
+                if (typeof saveToLocal === 'function') saveToLocal();
+                document.getElementById('js-gmap-iframe') &&
+                    (document.getElementById('js-gmap-iframe').src = `https://maps.google.com/maps?q=${window.OrigenDrone.lat},${window.OrigenDrone.lng}&t=k&z=16&ie=UTF8&iwloc=&output=embed`);
+                if (typeof syncRutasDesdeOrigen === 'function')
+                    syncRutasDesdeOrigen({ refreshAll: true }).then(() => alert('📍 Origen Drone fijado.\nDistancias recalculadas con tráfico.'));
+            }
+        });
+    }
+
+    // — Fijar Norte —
+    const btnNorth = document.getElementById('arq2-btn-north');
+    if (btnNorth && !btnNorth.dataset.arq2Bound) {
+        btnNorth.dataset.arq2Bound = '1';
+        btnNorth.addEventListener('click', () => {
+            const existingBtn = document.getElementById('btn-set-north');
+            if (existingBtn) { existingBtn.click(); return; }
+            // Fallback inline
+            if (!window.visor360) return;
+            window.NorteOffset = window.visor360.getYaw();
+            if (typeof saveToLocal === 'function') saveToLocal();
+            alert('🧭 Brújula calibrada: El Norte Magnético apunta ahora a tu vista actual.');
+            const compassDial = document.getElementById('js-compass');
+            if (compassDial) compassDial.style.transform = `rotate(${-(window.visor360.getYaw() - window.NorteOffset)}deg)`;
+        });
+    }
+
+    // — Limpiar Todo —
+    const btnLimpiar = document.getElementById('arq2-btn-limpiar');
+    if (btnLimpiar && !btnLimpiar.dataset.arq2Bound) {
+        btnLimpiar.dataset.arq2Bound = '1';
+        btnLimpiar.addEventListener('click', () => {
+            if (typeof limpiarProyecto === 'function') { limpiarProyecto(); return; }
+            // Fallback inline
+            if (!confirm('⚠️ ¡ADVERTENCIA NUCLEAR! Vas a borrar TODOS los lotes, calles y pines.\n\n¿Estás seguro?')) return;
+            if (typeof clearFranjaDraft === 'function') clearFranjaDraft();
+            window.BaseDatosLotes = []; window.PuntosHorizonte = []; window.allDrawnLines = []; window.currentLinePoints = [];
+            document.body.classList.remove('auto-macro-active', 'masterplan-premium-active');
+            if (typeof refreshAllHotspots === 'function') refreshAllHotspots();
+            localStorage.removeItem(window.FRESIA_CFG?.autosaveKey);
+        });
+    }
 }

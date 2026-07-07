@@ -125,6 +125,22 @@
                 <button type="button" class="dev-btn arq2-tool-btn" data-arq2-tool="relleno-auto">Relleno</button>
                 <button type="button" class="dev-btn arq2-tool-btn" data-arq2-tool="smart-pin-v2" style="color:#f59e0b;font-weight:800;">📍 Pin V2</button>
             </div>
+            <!-- ═══════════════════════════════════════════════════════════
+                 FILA DE PINES ARQ2 — Calco del Modo Pines (Ctrl+P)
+                 Permite colocar cualquier tipo de pin sobre polígonos SVG
+            ═══════════════════════════════════════════════════════════ -->
+            <div class="arq2-tool-row arq2-pins-row">
+                <button type="button" class="dev-btn arq2-pin-btn" data-arq2-pin="horizonte" title="Pin Horizonte — referencia geográfica con ruta y distancia">📡 Horizonte</button>
+                <button type="button" class="dev-btn arq2-pin-btn" data-arq2-pin="ruta" title="Pin Ruta — acceso vial con tiempo y distancia calculados">🚗 Ruta</button>
+                <button type="button" class="dev-btn arq2-pin-btn" data-arq2-pin="vista360" title="Pin Vista 360° — vincula un recorrido virtual">🎥 360°</button>
+                <button type="button" class="dev-btn arq2-pin-btn" data-arq2-pin="casa360" title="Pin Casa 360° — tour virtual de una propiedad">🏠 Casa</button>
+                <div style="width:1px;height:18px;background:rgba(255,255,255,0.18);margin:0 3px;"></div>
+                <button type="button" class="dev-btn" id="arq2-btn-linea-pines" style="color:#a855f7;font-weight:800;" title="Trazar línea guía → Enter alinea smart pins al centro de cada lote">📌 L.Pines</button>
+                <button type="button" class="dev-btn" id="arq2-btn-drone" style="color:#f59e0b;" title="Fijar Coordenadas del Drone (Lat, Lng) — base para cálculo de rutas">📌 Drone</button>
+                <button type="button" class="dev-btn" id="arq2-btn-north" style="color:#34d399;" title="Fijar la vista actual como el Norte Magnético">🧭 Norte</button>
+                <div style="width:1px;height:18px;background:rgba(255,255,255,0.18);margin:0 3px;"></div>
+                <button type="button" class="dev-btn nuke" id="arq2-btn-limpiar" title="Borrar TODOS los lotes, calles y pines">🗑️ Limpiar</button>
+            </div>
             <p id="arq2-fila-desc" class="arq2-fila-desc">FILA VARIABLE: dibuja el contorno COMPLETO de toda la hilera de terrenos de una vez (como un lote grande), igual que Lote Libre. Luego indicas cuántos lotes quieres adentro y el tamaño de cada uno — la herramienta reparte las divisiones internas proporcionalmente sola, sin que tengas que dibujar cada lote por separado.</p>
             <p id="arq2-semaphore" class="arq2-semaphore arq2-sem-green">Trazo limpio</p>
             <ul id="arq2-steps-list" class="arq2-steps-dynamic"></ul>

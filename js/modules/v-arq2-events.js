@@ -132,7 +132,7 @@ function arq2_onPanoramaClick(mock, isDblClick) {
     // Para Smart Pin V2 usamos siempre nuestra función propia
     // que NO depende de que el event.target sea el canvas WebGL
     let rawCoords;
-    if (arq2Tool === 'smart-pin-v2') {
+    if (arq2Tool === 'smart-pin-v2' || arq2PinSubTool) {
         rawCoords = arq2_screenToPanoCoords(mock.clientX, mock.clientY);
     } else {
         rawCoords = visor360.mouseEventToCoords(mock);
@@ -140,41 +140,76 @@ function arq2_onPanoramaClick(mock, isDblClick) {
     const coords = rawCoords;
     if (!coords || isNaN(coords[0])) return;
     
-    if (arq2Tool === 'smart-pin-v2') {
+    if (arq2Tool === 'smart-pin-v2' || arq2PinSubTool) {
         let p = parseFloat(coords[0].toFixed(3)), y = parseFloat(coords[1].toFixed(3));
-        let num = prompt("Número/Nombre del Lote:", "00");
-        if (num === null) return;
-        let precio = prompt("Precio (opcional, ej: 1.500 UF):", "");
-        if (precio === null) return;
-        let estado = prompt("Estado (disponible, reservado, vendido):", "disponible") || "disponible";
-        estado = estado.toLowerCase().trim();
-        let videoUrl = prompt("URL de Recorrido 360 (opcional):", "");
-        const tsId = 'pin_v2_' + Date.now();
+        let tipoFinal = 'lote';
+        let statusFinal = 'disponible';
+        let tituloFinal = 'Lote 00';
+
+        if (arq2PinSubTool) {
+            tipoFinal = arq2PinSubTool;
+            if (tipoFinal === 'horizonte') tituloFinal = prompt('📡 PIN HORIZONTE\nTítulo (ej: Volcán Osorno):');
+            else if (tipoFinal === 'ruta') tituloFinal = prompt('🚗 PIN RUTA\nTítulo (ej: Ruta V-30):');
+            else if (tipoFinal === 'vista360') tituloFinal = 'VISTA 360';
+            else if (tipoFinal === 'casa360') tituloFinal = 'CASA TOUR';
+            
+            // Si el prompt fue cancelado
+            if (tituloFinal === null) return;
+        }
+
+        // NO lo insertamos en BaseDatosLotes/PuntosHorizonte aquí
+        // eso lo hace btnSavePin del modal cuando isNew=true
         let nuevoPin = {
-            id: tsId,
             pitch: p,
             yaw: y,
-            tipo: 'lote',
-            numero: num,
-            precio: precio,
-            status: estado,
-            videoUrl: videoUrl,
+            tipo: tipoFinal,
+            titulo: tituloFinal,
+            numero: '00',
+            precio: 'UF 0',
+            superficie: '0 m2',
+            status: statusFinal,
+            videoUrl: '',
+            coordenadasDestino: '',
             createTooltipFunc: generarSmartPin,
-            createTooltipArgs: { 
-                id: tsId, 
-                numero: num, 
-                precio: precio, 
-                status: estado, 
-                videoUrl: videoUrl 
-            }
+            createTooltipArgs: null
         };
+        nuevoPin.createTooltipArgs = nuevoPin;
         if (!window.BaseDatosLotes) window.BaseDatosLotes = [];
-        try {
-            visor360.addHotSpot(nuevoPin);
-            window.BaseDatosLotes.push(nuevoPin); // push SOLO una vez
-            if (typeof window.arq2_recalcAllPolygonStatuses === 'function') window.arq2_recalcAllPolygonStatuses();
-            if (typeof window.saveToLocal === 'function') window.saveToLocal();
-        } catch(e) { console.warn('[PinV2] Error al agregar hotspot:', e); }
+        if (!window.PuntosHorizonte) window.PuntosHorizonte = [];
+
+        // Abrir el modal premium
+        if (typeof openPinEditor === 'function') {
+            openPinEditor(nuevoPin, true);
+            // Hook: cuando el modal se cierre (por Save o Cancel), verificar si el pin se guardó
+            const modalEl = document.getElementById('pin-editor-modal');
+            const observer = new MutationObserver(() => {
+                if (!modalEl.classList.contains('open')) {
+                    observer.disconnect();
+                    // Verificar si btnSavePin insertó nuestro objeto en alguno de los arrays
+                    const wasSaved = window.BaseDatosLotes.includes(nuevoPin) || window.PuntosHorizonte.includes(nuevoPin);
+                    if (wasSaved) {
+                        try {
+                            nuevoPin.createTooltipArgs = nuevoPin;
+                            nuevoPin.createTooltipFunc = generarSmartPin;
+                            visor360.addHotSpot(nuevoPin);
+                            if (typeof window.arq2_recalcAllPolygonStatuses === 'function') window.arq2_recalcAllPolygonStatuses();
+                            if (typeof window.saveToLocal === 'function') window.saveToLocal();
+                            if (typeof window.refreshAllHotspots === 'function') window.refreshAllHotspots();
+                        } catch(err) { console.warn('[PinV2] addHotSpot error:', err); }
+                    }
+                }
+            });
+            observer.observe(modalEl, { attributes: true, attributeFilter: ['class'] });
+        } else {
+            // Fallback
+            if (tipoFinal === 'horizonte' || tipoFinal === 'ruta') window.PuntosHorizonte.push(nuevoPin);
+            else window.BaseDatosLotes.push(nuevoPin);
+            try {
+                visor360.addHotSpot(nuevoPin);
+                if (typeof window.arq2_recalcAllPolygonStatuses === 'function') window.arq2_recalcAllPolygonStatuses();
+                if (typeof window.saveToLocal === 'function') window.saveToLocal();
+            } catch(e) { console.warn('[PinV2] fallback error:', e); }
+        }
         return;
     }
     

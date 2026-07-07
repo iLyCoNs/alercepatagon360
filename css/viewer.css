@@ -550,3 +550,28 @@ body.calle-mode-active .linea-calle-arq2-fill:hover { filter: brightness(1.2); }
 /* TRUCO ARQUITECTO 2.0: Pin V2 Ghost Mode */
 body.pin-v2-active .lote-interactivo { pointer-events: none !important; }
 
+
+/* =========================================================
+   ARQUITECTO 2.0 — FILA DE PINES: Ghost Mode + estilos
+   ========================================================= */
+
+/* Separador visual entre fila de herramientas y fila de pines */
+.arq2-pins-row {
+    border-top: 1px solid rgba(255,255,255,0.10);
+    padding-top: 6px !important;
+    margin-top: 2px !important;
+    gap: 4px !important;
+    flex-wrap: wrap !important;
+}
+
+/* Botón de pin activo en Arq2 */
+.arq2-pin-btn.active {
+    background: rgba(245,158,11,0.25) !important;
+    border-color: #f59e0b !important;
+    color: #f59e0b !important;
+    box-shadow: 0 0 8px rgba(245,158,11,0.35) !important;
+}
+
+/* Ghost Mode extendido: arq2-pin-active desactiva eventos en polígonos SVG */
+body.arq2-pin-active .lote-interactivo { pointer-events: none !important; }
+

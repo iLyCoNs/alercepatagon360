@@ -1161,7 +1161,8 @@ const ARQ2_STEPS = [
     { tool: 'fila-calle', id: 'select', text: 'Haz clic sobre el borde INTERIOR de una calle para seleccionarlo como frente de los lotes.' },
     { tool: 'fila-calle', id: 'depth', text: 'Ajusta la profundidad con el slider y haz clic en «Definir Lotes».' },
     { tool: 'fila-calle', id: 'modal', text: 'Indica cuántos lotes y sus m² en la ventana — se generan alineados a la calle.' },
-    { tool: 'smart-pin-v2', id: 'corners', text: 'Haz clic sobre cualquier lote libre dibujado o zona del terreno para fijar un Smart Pin V2.' }
+    { tool: 'smart-pin-v2', id: 'corners', text: 'Haz clic sobre cualquier lote libre o zona del terreno — se abrirá el editor premium para completar datos (número, precio, superficie, estado, video 360).' },
+    { tool: 'smart-pin-v2', id: 'edit',    text: 'Doble clic sobre un pin existente para editar. Arrastra con el modo Pines (Ctrl+P) activo. Botones ✎/🗑 en hover para editar o eliminar.' }
 ];
 function arq2_applyOrganicPathAttrs(pathEl, role) {
     if (!pathEl) return;

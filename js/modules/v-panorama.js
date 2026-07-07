@@ -358,14 +358,14 @@ function bindPanoramaPointerEvents() {
     if (loteoSvg) {
         let svgPinStartX, svgPinStartY, svgPinStartTime;
         loteoSvg.addEventListener('mousedown', (e) => {
-            if (!document.body.classList.contains('pin-v2-active')) return;
+            if (!document.body.classList.contains('pin-v2-active') && !document.body.classList.contains('arq2-pin-active')) return;
             const mock = getMockEvent(e);
             svgPinStartX = mock.clientX;
             svgPinStartY = mock.clientY;
             svgPinStartTime = Date.now();
         }, { passive: true });
         loteoSvg.addEventListener('mouseup', (e) => {
-            if (!document.body.classList.contains('pin-v2-active')) return;
+            if (!document.body.classList.contains('pin-v2-active') && !document.body.classList.contains('arq2-pin-active')) return;
             if (!isArquitecto2Active) return;
             const mock = getMockEvent(e);
             const dx = mock.clientX - (svgPinStartX || mock.clientX);
@@ -378,14 +378,14 @@ function bindPanoramaPointerEvents() {
             }
         }, { passive: true });
         loteoSvg.addEventListener('touchstart', (e) => {
-            if (!document.body.classList.contains('pin-v2-active')) return;
+            if (!document.body.classList.contains('pin-v2-active') && !document.body.classList.contains('arq2-pin-active')) return;
             const mock = getMockEvent(e);
             svgPinStartX = mock.clientX;
             svgPinStartY = mock.clientY;
             svgPinStartTime = Date.now();
         }, { passive: true });
         loteoSvg.addEventListener('touchend', (e) => {
-            if (!document.body.classList.contains('pin-v2-active')) return;
+            if (!document.body.classList.contains('pin-v2-active') && !document.body.classList.contains('arq2-pin-active')) return;
             if (!isArquitecto2Active) return;
             const mock = getMockEvent(e);
             const dx = mock.clientX - (svgPinStartX || mock.clientX);
