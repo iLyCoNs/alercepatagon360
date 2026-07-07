@@ -836,7 +836,7 @@ window.arquitecto3D = {
             lote.lineMesh.geometry.setFromPoints(pts);
             
             // Actualizar relleno con triangulación correcta para cóncavos
-            const cleanPts = lote.points.slice(0, -1);
+            const cleanPts = lote.points; // lote.points ya no tiene el loop cerrado, pts sí
             const vec2D = cleanPts.map(p => new THREE.Vector2(Math.atan2(p.x, p.z), Math.asin(p.y / p.length())));
             const faces = THREE.ShapeUtils.triangulateShape(vec2D, []);
             faces.forEach(face => {
