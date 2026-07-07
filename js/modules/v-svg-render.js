@@ -185,7 +185,7 @@ function syncSVGVerticesLayer(svg) {
         svg.appendChild(lVertices);
     }
     
-    // Recopilar qué vértices necesitamos (igual que antes en getHotspotsConfig)
+    // Recopilar quÃ© vÃ©rtices necesitamos (igual que antes en getHotspotsConfig)
     const needed = [];
     allDrawnLines.forEach((linea) => {
         if (linea.tipo === 'franja-grupo' || linea.tipo === 'franja-curva-grupo') {
@@ -237,6 +237,12 @@ function syncSVGVerticesLayer(svg) {
     });
     
     if (!DOMCache.svgMarkers) DOMCache.svgMarkers = {};
+    Object.keys(DOMCache.svgMarkers).forEach(id => {
+        if (!currentIds.includes(id)) {
+            delete DOMCache.svgMarkers[id];
+        }
+    });
+
     needed.forEach(n => {
         let gNode = document.getElementById(n.hsId);
         if (!gNode) {
@@ -246,7 +252,7 @@ function syncSVGVerticesLayer(svg) {
             
             const outerCircle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
             outerCircle.setAttribute('class', 'svg-vertex-touch-target');
-            outerCircle.setAttribute('r', '20'); // Área táctil amplia
+            outerCircle.setAttribute('r', '20'); // Ãrea tÃ¡ctil amplia
             
             const innerCircle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
             innerCircle.setAttribute('class', 'svg-vertex');
@@ -255,7 +261,8 @@ function syncSVGVerticesLayer(svg) {
             gNode.appendChild(innerCircle);
             
             if (typeof renderHiddenVertex === 'function') {
-                renderHiddenVertex(gNode, n); // Reutilizamos tu lógica exacta de binding
+                renderHiddenVertex(gNode, n); // Reutilizamos tu lÃ³gica exacta de binding
+                gNode.classList.remove('vertex-marker');
             }
             lVertices.appendChild(gNode);
         }
@@ -396,7 +403,7 @@ function updateSVGPaths() {
         guideEl.setAttribute('d', 'M -999 -999');
     }
     
-    // NOTA CIRUJANO: Sincronización a 60FPS de los vértices SVG
+    // NOTA CIRUJANO: SincronizaciÃ³n a 60FPS de los vÃ©rtices SVG
     if (DOMCache.svgMarkers) {
         Object.keys(DOMCache.svgMarkers).forEach(id => {
             const m = DOMCache.svgMarkers[id];
