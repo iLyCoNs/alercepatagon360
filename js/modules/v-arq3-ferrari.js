@@ -573,10 +573,10 @@ window.arquitecto3D = {
         
         // Agregar los meshes a la escena
         this.group.add(newLote.lineMesh);
-        // Generar etiquetas finales para cada vértice
-        newLote.points.forEach((pt, i) => {
-            this.createPermanentLabel(pt, i + 1, loteId);
-        });
+        if (newLote.fillMesh) this.group.add(newLote.fillMesh);
+        if (newLote.markerMeshes) {
+            newLote.markerMeshes.forEach(m => this.vertexMarkerGroup.add(m));
+        }
         
         window.updateCosturaEdges();
     },
@@ -603,12 +603,10 @@ window.arquitecto3D = {
         this.buildLoteMeshes(newLote);
         
         this.group.add(newLote.lineMesh);
-        this.group.add(newLote.fillMesh);
-        newLote.markerMeshes.forEach(m => this.vertexMarkerGroup.add(m));
-        
-        newLote.points.forEach((pt, i) => {
-            this.createPermanentLabel(pt, i + 1, loteId);
-        });
+        if (newLote.fillMesh) this.group.add(newLote.fillMesh);
+        if (newLote.markerMeshes) {
+            newLote.markerMeshes.forEach(m => this.vertexMarkerGroup.add(m));
+        }
     },
 
     clearTemp: function() {
