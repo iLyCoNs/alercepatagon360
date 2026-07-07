@@ -414,5 +414,4 @@ function updateSVGPaths() {
     }
 
     arq2_updateDemoLayer();
-}r();
 }
