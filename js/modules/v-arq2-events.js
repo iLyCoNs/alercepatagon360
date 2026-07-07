@@ -92,6 +92,36 @@ function arq2_onPanoramaMove(mock) {
     syncSVGElements();
     updateSVGPaths();
 }
+function arq2_screenToPanoCoords(clientX, clientY) {
+    // Replica la matemática de Pannellum ta() pero leyendo el canvas directamente
+    // para que funcione aunque el event.target sea un path SVG y no el canvas.
+    try {
+        const renderer = visor360.getRenderer();
+        const cfg = visor360.getConfig();
+        const canvas = renderer.getCanvas();
+        const rect = canvas.getBoundingClientRect();
+        const nx = canvas.clientWidth  || rect.width  || rect.right - rect.left;
+        const ny = canvas.clientHeight || rect.height || rect.bottom - rect.top;
+        if (!nx || !ny) return null;
+        const x = (clientX - rect.left) / nx * 2 - 1;
+        const y = (1 - (clientY - rect.top) / ny * 2) * ny / nx;
+        const hfov = cfg.hfov * Math.PI / 180;
+        const pitch = cfg.pitch * Math.PI / 180;
+        const yaw0  = cfg.yaw;
+        const d = 1 / Math.tan(hfov / 2);
+        const sp = Math.sin(pitch), cp = Math.cos(pitch);
+        const f = d * cp - y * sp;
+        const n = Math.sqrt(x * x + f * f);
+        const pRad = Math.atan((y * cp + d * sp) / n);
+        let   yRad = Math.atan2(x / n, f / n) * 180 / Math.PI + yaw0;
+        if (yRad < -180) yRad += 360;
+        if (yRad >  180) yRad -= 360;
+        return [pRad * 180 / Math.PI, yRad];
+    } catch(e) {
+        // fallback: usar mouseEventToCoords clásico
+        return visor360.mouseEventToCoords({ clientX, clientY });
+    }
+}
 function arq2_onPanoramaClick(mock, isDblClick) {
     if (!isArquitecto2Active || !visor360) return;
     if (document.getElementById('franja-lotes-modal')?.classList.contains('open')) return;
@@ -99,7 +129,15 @@ function arq2_onPanoramaClick(mock, isDblClick) {
         runEraserAtEvent(mock);
         return;
     }
-    const coords = visor360.mouseEventToCoords(mock);
+    // Para Smart Pin V2 usamos siempre nuestra función propia
+    // que NO depende de que el event.target sea el canvas WebGL
+    let rawCoords;
+    if (arq2Tool === 'smart-pin-v2') {
+        rawCoords = arq2_screenToPanoCoords(mock.clientX, mock.clientY);
+    } else {
+        rawCoords = visor360.mouseEventToCoords(mock);
+    }
+    const coords = rawCoords;
     if (!coords || isNaN(coords[0])) return;
     
     if (arq2Tool === 'smart-pin-v2') {
@@ -111,36 +149,32 @@ function arq2_onPanoramaClick(mock, isDblClick) {
         let estado = prompt("Estado (disponible, reservado, vendido):", "disponible") || "disponible";
         estado = estado.toLowerCase().trim();
         let videoUrl = prompt("URL de Recorrido 360 (opcional):", "");
-        
+        const tsId = 'pin_v2_' + Date.now();
         let nuevoPin = {
-            id: 'pin_v2_' + Date.now(),
+            id: tsId,
             pitch: p,
             yaw: y,
+            tipo: 'lote',
             numero: num,
             precio: precio,
             status: estado,
             videoUrl: videoUrl,
             createTooltipFunc: generarSmartPin,
             createTooltipArgs: { 
-                id: 'pin_v2_' + Date.now(), 
+                id: tsId, 
                 numero: num, 
                 precio: precio, 
                 status: estado, 
                 videoUrl: videoUrl 
             }
         };
-        
-        // Guardar en array global y renderizar
         if (!window.BaseDatosLotes) window.BaseDatosLotes = [];
-        window.BaseDatosLotes.push(nuevoPin);
-        
         try {
             visor360.addHotSpot(nuevoPin);
-            window.BaseDatosLotes.push(nuevoPin);
+            window.BaseDatosLotes.push(nuevoPin); // push SOLO una vez
             if (typeof window.arq2_recalcAllPolygonStatuses === 'function') window.arq2_recalcAllPolygonStatuses();
             if (typeof window.saveToLocal === 'function') window.saveToLocal();
-        } catch(e) {}
-        
+        } catch(e) { console.warn('[PinV2] Error al agregar hotspot:', e); }
         return;
     }
     

@@ -346,6 +346,56 @@ function bindPanoramaPointerEvents() {
         try { const coords = visor360.mouseEventToCoords(mock); updateDrawModeSnap(mock, coords); } catch (err) {}
     }
     container.addEventListener('mousedown', handleStart); container.addEventListener('touchstart', handleStart, { passive: false }); window.addEventListener('mouseup', handleEnd); window.addEventListener('touchend', handleEnd); window.addEventListener('mousemove', handleMove); window.addEventListener('touchmove', handleMove, { passive: false });
+
+    // =====================================================================
+    // FIX RAÍZ — Smart Pin sobre polígono SVG
+    // El #loteo-svg es hermano de #panorama-container y está por encima en DOM.
+    // Los clics sobre sus <path> NO burbujean al container, por eso
+    // handleEnd nunca se dispara. Aquí escuchamos en el SVG directamente
+    // y enrutamos a arq2_onPanoramaClick cuando está activo el modo Pin V2.
+    // =====================================================================
+    const loteoSvg = document.getElementById('loteo-svg');
+    if (loteoSvg) {
+        let svgPinStartX, svgPinStartY, svgPinStartTime;
+        loteoSvg.addEventListener('mousedown', (e) => {
+            if (!document.body.classList.contains('pin-v2-active')) return;
+            const mock = getMockEvent(e);
+            svgPinStartX = mock.clientX;
+            svgPinStartY = mock.clientY;
+            svgPinStartTime = Date.now();
+        }, { passive: true });
+        loteoSvg.addEventListener('mouseup', (e) => {
+            if (!document.body.classList.contains('pin-v2-active')) return;
+            if (!isArquitecto2Active) return;
+            const mock = getMockEvent(e);
+            const dx = mock.clientX - (svgPinStartX || mock.clientX);
+            const dy = mock.clientY - (svgPinStartY || mock.clientY);
+            const dt = Date.now() - (svgPinStartTime || Date.now());
+            // Solo si fue un tap, no un arrastre
+            if (dt < 500 && Math.hypot(dx, dy) < 12) {
+                e.stopPropagation();
+                arq2_onPanoramaClick(mock, false);
+            }
+        }, { passive: true });
+        loteoSvg.addEventListener('touchstart', (e) => {
+            if (!document.body.classList.contains('pin-v2-active')) return;
+            const mock = getMockEvent(e);
+            svgPinStartX = mock.clientX;
+            svgPinStartY = mock.clientY;
+            svgPinStartTime = Date.now();
+        }, { passive: true });
+        loteoSvg.addEventListener('touchend', (e) => {
+            if (!document.body.classList.contains('pin-v2-active')) return;
+            if (!isArquitecto2Active) return;
+            const mock = getMockEvent(e);
+            const dx = mock.clientX - (svgPinStartX || mock.clientX);
+            const dy = mock.clientY - (svgPinStartY || mock.clientY);
+            const dt = Date.now() - (svgPinStartTime || Date.now());
+            if (dt < 500 && Math.hypot(dx, dy) < 18) {
+                arq2_onPanoramaClick(mock, false);
+            }
+        }, { passive: true });
+    }
 }
 
 async function initPannellum() {
