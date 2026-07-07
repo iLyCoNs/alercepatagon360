@@ -636,12 +636,12 @@ async function initPannellum() {
     });
     window.addEventListener('mouseup', () => { threeIsDragging = false; });
     window.addEventListener('mousemove', (e) => {
-        if(!threeIsDragging || window.draggingVertex || window.draggingCalleMove || window.draggingFranjaDiv) return;
+        if(!threeIsDragging || window.draggingVertex || window.draggingCalleMove || window.draggingFranjaDiv || (window.arquitecto3D && window.arquitecto3D.draggingInfo)) return;
         const dx = e.clientX - threeLastMouseX;
         const dy = e.clientY - threeLastMouseY;
         threeLastMouseX = e.clientX; threeLastMouseY = e.clientY;
-        threeTargetYaw += dx * 0.15;
-        threeTargetPitch -= dy * 0.15;
+        threeTargetYaw -= dx * 0.15;
+        threeTargetPitch += dy * 0.15;
         threeTargetPitch = Math.max(-85, Math.min(85, threeTargetPitch));
     });
     
@@ -659,12 +659,12 @@ async function initPannellum() {
     }, {passive: true});
     window.addEventListener('touchend', () => { threeIsDragging = false; });
     window.addEventListener('touchmove', (e) => {
-        if(!threeIsDragging || window.draggingVertex || window.draggingCalleMove || window.draggingFranjaDiv) return;
+        if(!threeIsDragging || window.draggingVertex || window.draggingCalleMove || window.draggingFranjaDiv || (window.arquitecto3D && window.arquitecto3D.draggingInfo)) return;
         const dx = e.touches[0].clientX - threeLastMouseX;
         const dy = e.touches[0].clientY - threeLastMouseY;
         threeLastMouseX = e.touches[0].clientX; threeLastMouseY = e.touches[0].clientY;
-        threeTargetYaw += dx * 0.25;
-        threeTargetPitch -= dy * 0.25;
+        threeTargetYaw -= dx * 0.25;
+        threeTargetPitch += dy * 0.25;
         threeTargetPitch = Math.max(-85, Math.min(85, threeTargetPitch));
     }, {passive: true});
 
