@@ -429,6 +429,7 @@ async function initPannellum() {
         const material = new THREE.MeshBasicMaterial({ map: texture });
         threeMesh = new THREE.Mesh(geometry, material);
         threeScene.add(threeMesh);
+        if (typeof refreshAllHotspots === 'function') refreshAllHotspots(true);
         if (!pannellumIntroBootstrapped) { pannellumIntroBootstrapped = true; runPannellumIntroBootstrap(); }
     });
 
