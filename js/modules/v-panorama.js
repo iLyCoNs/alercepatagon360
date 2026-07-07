@@ -640,7 +640,7 @@ async function initPannellum() {
         const dx = e.clientX - threeLastMouseX;
         const dy = e.clientY - threeLastMouseY;
         threeLastMouseX = e.clientX; threeLastMouseY = e.clientY;
-        threeTargetYaw -= dx * 0.15;
+        threeTargetYaw += dx * 0.15;
         threeTargetPitch += dy * 0.15;
         threeTargetPitch = Math.max(-85, Math.min(85, threeTargetPitch));
     });
@@ -663,7 +663,7 @@ async function initPannellum() {
         const dx = e.touches[0].clientX - threeLastMouseX;
         const dy = e.touches[0].clientY - threeLastMouseY;
         threeLastMouseX = e.touches[0].clientX; threeLastMouseY = e.touches[0].clientY;
-        threeTargetYaw -= dx * 0.25;
+        threeTargetYaw += dx * 0.25;
         threeTargetPitch += dy * 0.25;
         threeTargetPitch = Math.max(-85, Math.min(85, threeTargetPitch));
     }, {passive: true});
