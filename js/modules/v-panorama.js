@@ -112,20 +112,25 @@ function runPannellumIntroBootstrap() {
 
 function bindPanoramaPointerEvents() {
     const container = document.getElementById('panorama-container'); let startX, startY, startTime; let lastClickTime = 0;
+    
     function handleStart(e) { 
         let mock = getMockEvent(e); 
         startX = mock.clientX; 
         startY = mock.clientY; 
-        startTime = Date.now(); 
+        startTime = Date.now();
         
         // --- Hit-Testing Espacial para Vértices Batch Rendering ---
         if ((typeof isDevModeDrawActive !== 'undefined' && isDevModeDrawActive) || (typeof isArquitecto2Active !== 'undefined' && isArquitecto2Active)) {
             if (window.DOMCache && window.DOMCache.svgVerticesList) {
+                const rect = container.getBoundingClientRect();
+                const containerX = startX - rect.left;
+                const containerY = startY - rect.top;
+                
                 let hit = null, minDist = 20; // Radio táctil virtual (20px)
                 for (let i = 0; i < window.DOMCache.svgVerticesList.length; i++) {
                     const v = window.DOMCache.svgVerticesList[i];
                     if (v.sx === -999) continue;
-                    const d = Math.hypot(v.sx - startX, v.sy - startY);
+                    const d = Math.hypot(v.sx - containerX, v.sy - containerY);
                     if (d < minDist) { minDist = d; hit = v; }
                 }
                 if (hit) {
@@ -372,7 +377,7 @@ function bindPanoramaPointerEvents() {
         
         try { const coords = visor360.mouseEventToCoords(mock); updateDrawModeSnap(mock, coords); } catch (err) {}
     }
-    container.addEventListener('mousedown', handleStart); container.addEventListener('touchstart', handleStart, { passive: false }); window.addEventListener('mouseup', handleEnd); window.addEventListener('touchend', handleEnd); window.addEventListener('mousemove', handleMove); window.addEventListener('touchmove', handleMove, { passive: false });
+    container.addEventListener('mousedown', handleStart, { capture: true }); container.addEventListener('touchstart', handleStart, { passive: false, capture: true }); window.addEventListener('mouseup', handleEnd); window.addEventListener('touchend', handleEnd); window.addEventListener('mousemove', handleMove); window.addEventListener('touchmove', handleMove, { passive: false });
 
     // =====================================================================
     // FIX RAÍZ — Smart Pin sobre polígono SVG
