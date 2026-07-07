@@ -336,7 +336,7 @@ function revealLoteoOverlay() {
 }
 const DEFAULT_HFOV = 125, MAX_SCALE = 1.0, MIN_SCALE = 0.20, SNAP_DISTANCE = 8.0;
 let lastDevDrawClickMs = 0, lastArq2DrawClickMs = 0, closeOriginHighlighted = false,
-    arq2CalleCurvaAncho = 8, draftCalleCurvaAlpha = 0.55, arq2SmoothIntensity = 5, arq2CalleRetorno = false, arq2Guideline = null,
+    arq2CalleCurvaAncho = 8, draftCalleCurvaAlpha = 0.55, draftCalleCurvaColor = '#5a5f69', arq2SmoothIntensity = 5, arq2CalleRetorno = false, arq2Guideline = null,
     draftCalleCurvaCurvatura = 5;
 
 // === FASE 1 — Fila sobre Calle (state) ===
@@ -1147,6 +1147,7 @@ function bindSvgEraser(el, lineId) {
                 arq2CalleCurvaAncho = line.calleCurvaAncho || line.ancho || 8;
                 draftCalleCurvaCurvatura = line.calleCurvaCurvatura ?? 5;
                 draftCalleCurvaAlpha = line.calleCurvaAlpha ?? 0.55;
+                draftCalleCurvaColor = line.calleColor ?? '#5a5f69';
                 arq2CalleRetorno = line.calleRetorno ?? false;
                 
                 allDrawnLines.splice(lineIdx, 1);
@@ -1793,7 +1794,7 @@ function getCalleStyleForLine(line) {
         showLabel: line?.calleShowLabel !== undefined ? line.calleShowLabel : draftCalleShowLabel
     };
 }
-function applyCallePathStyles(paths, ancho, alpha) {
+function applyCallePathStyles(paths, ancho, alpha, lineData = null) {
     if (!paths || !paths.length) return;
     const sw = getCalleStrokeWidths(ancho);
     const a = Math.max(0, Math.min(1, alpha ?? draftCalleAlpha ?? 0));
@@ -1809,7 +1810,12 @@ function applyCallePathStyles(paths, ancho, alpha) {
     }
     if (asf) {
         asf.style.setProperty('stroke-width', sw.asfalto + 'px', 'important');
-        asf.style.setProperty('stroke', a <= 0.02 ? 'rgba(0,0,0,0)' : `rgba(30,35,45,${a})`, 'important');
+        let hexColor = (lineData?.calleColor) || ((typeof draftCalleCurvaColor !== 'undefined') ? draftCalleCurvaColor : '#5a5f69');
+        if (hexColor.length === 4) hexColor = '#' + hexColor[1]+hexColor[1] + hexColor[2]+hexColor[2] + hexColor[3]+hexColor[3];
+        const r = parseInt(hexColor.substring(1,3), 16) || 90;
+        const g = parseInt(hexColor.substring(3,5), 16) || 95;
+        const b = parseInt(hexColor.substring(5,7), 16) || 105;
+        asf.style.setProperty('stroke', a <= 0.02 ? 'rgba(0,0,0,0)' : `rgba(${r},${g},${b},${a})`, 'important');
         asf.style.setProperty('stroke-linecap', 'butt', 'important');
         asf.style.setProperty('stroke-linejoin', 'miter', 'important');
     }
@@ -3495,10 +3501,10 @@ function arq2_getCalleCurvaPreviewLineData() {
             if (py) eje.push([parseFloat(py[0].toFixed(3)), parseFloat(py[1].toFixed(3))]);
         }
     }
-    if (eje.length < 2) return { id: arq2TempLineId, tipo: 'calle-curva-arq2-preview', ejeOriginal: eje, puntos: eje, calleCurvaAlpha: draftCalleCurvaAlpha };
+    if (eje.length < 2) return { id: arq2TempLineId, tipo: 'calle-curva-arq2-preview', ejeOriginal: eje, puntos: eje, calleCurvaAlpha: draftCalleCurvaAlpha, calleColor: draftCalleCurvaColor };
     const geo = arq2_buildCalleCurvaGeometry(eje, arq2CalleCurvaAncho, draftCalleCurvaAlpha, arq2CalleRetorno);
-    if (!geo) return { id: arq2TempLineId, tipo: 'calle-curva-arq2-preview', ejeOriginal: eje, puntos: eje, calleCurvaAlpha: draftCalleCurvaAlpha };
-    return { id: arq2TempLineId, tipo: 'calle-curva-arq2-preview', ejeOriginal: geo.ejeOriginal, puntosSuavizados: geo.puntosSuavizados, ancho: geo.ancho, calleCurvaAlpha: geo.calleCurvaAlpha, calleRetorno: arq2CalleRetorno, left: geo.left, right: geo.right, puntos: geo.fillPoly };
+    if (!geo) return { id: arq2TempLineId, tipo: 'calle-curva-arq2-preview', ejeOriginal: eje, puntos: eje, calleCurvaAlpha: draftCalleCurvaAlpha, calleColor: draftCalleCurvaColor };
+    return { id: arq2TempLineId, tipo: 'calle-curva-arq2-preview', ejeOriginal: geo.ejeOriginal, puntosSuavizados: geo.puntosSuavizados, ancho: geo.ancho, calleCurvaAlpha: geo.calleCurvaAlpha, calleColor: draftCalleCurvaColor, calleRetorno: arq2CalleRetorno, left: geo.left, right: geo.right, puntos: geo.fillPoly };
 }
 function arq2_syncCalleCurvaPanelUI() {
     const valEl = document.getElementById('arq2-calle-ancho-val');
@@ -3506,6 +3512,7 @@ function arq2_syncCalleCurvaPanelUI() {
     const bar = document.getElementById('arq2-calle-width-preview-bar');
     const alphaEl = document.getElementById('arq2-calle-alpha');
     const alphaVal = document.getElementById('arq2-calle-alpha-val');
+    const colorEl = document.getElementById('arq2-calle-color');
     const cb = document.getElementById('arq2-calle-retorno');
     if (slider) slider.value = arq2CalleCurvaAncho;
     if (valEl) valEl.textContent = arq2CalleCurvaAncho.toFixed(1);
@@ -3515,6 +3522,7 @@ function arq2_syncCalleCurvaPanelUI() {
     }
     if (alphaEl) alphaEl.value = draftCalleCurvaAlpha;
     if (alphaVal) alphaVal.textContent = Math.round(draftCalleCurvaAlpha * 100) + '%';
+    if (colorEl && typeof draftCalleCurvaColor !== 'undefined') colorEl.value = draftCalleCurvaColor;
     if (cb) cb.checked = arq2CalleRetorno;
 }
 function arq2_bindCalleCurvaAlphaSlider() {
@@ -5938,6 +5946,8 @@ function updateSVGPaths() {
         if ((lineData.tipo === 'calle-curva-arq2' || lineData.tipo === 'calle-curva-arq2-preview') && cacheObj.base?.length >= 3) {
             const geoLine = lineData.tipo === 'calle-curva-arq2-preview' ? arq2_getCalleCurvaPreviewLineData() : lineData;
             if (!geoLine.left?.length || !geoLine.right?.length) return;
+            // Set the dynamic color variable for CSS
+            cacheObj.gNode.style.setProperty('--calle-color', geoLine.calleColor || draftCalleCurvaColor || '#5a5f69');
             // Backward compat: compute ejeIsClosed if not stored
             if (geoLine.ejeIsClosed === undefined && geoLine.ejeOriginal) {
                 geoLine.ejeIsClosed = arq2_isCalleEjeClosed(geoLine.ejeOriginal);
@@ -5986,7 +5996,7 @@ function updateSVGPaths() {
             cacheObj.base.forEach(path => path.setAttribute("d", dBase.trim() !== '' ? dBase : 'M -999 -999'));
             if (lineData.tipo === 'calle') {
                 const st = getCalleStyleForLine(lineData);
-                applyCallePathStyles(cacheObj.base, st.ancho, st.alpha);
+                applyCallePathStyles(cacheObj.base, st.ancho, st.alpha, lineData);
             }
         }
     });

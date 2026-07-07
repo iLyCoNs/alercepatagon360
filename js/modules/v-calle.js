@@ -701,6 +701,7 @@ function arq2_ensurePanelExtras() {
         rowEl.innerHTML = '<label>Ancho calle <span id="arq2-calle-ancho-val">8.0</span></label><input type="range" id="arq2-calle-ancho" min="4" max="15" step="0.5" value="8"><div id="arq2-calle-width-preview"><div id="arq2-calle-width-preview-bar"></div></div>' +
             '<label>Curvatura <span id="arq2-calle-curvatura-val">5</span> <span style="font-size:10px;color:#94a3b8">(0=recta / 10=muy curva)</span></label><input type="range" id="arq2-calle-curvatura" min="0" max="10" step="1" value="5">' +
             '<label>Transparencia <span id="arq2-calle-alpha-val">55%</span></label><input type="range" id="arq2-calle-alpha" min="0.15" max="1" step="0.05" value="0.55">' +
+            '<div style="margin-top: 6px; display: flex; justify-content: space-between; align-items: center;"><label>Color Base</label><input type="color" id="arq2-calle-color" value="#5a5f69" style="width: 32px; height: 32px; padding: 0; border: none; border-radius: 4px; cursor: pointer; background: transparent;"></div>' +
             '<div style="margin-top: 10px; display: flex; align-items: center; gap: 8px;"><input type="checkbox" id="arq2-calle-retorno" style="cursor:pointer;"><label for="arq2-calle-retorno" style="cursor:pointer; margin: 0; font-size: 11px; color: #fff;">Retorno Circular (Cul-de-sac)</label></div>' +
             '<div style="margin-top: 6px; display: flex; align-items: center; gap: 8px;"><input type="checkbox" id="arq2-calle-no-snap" style="cursor:pointer;"><label for="arq2-calle-no-snap" style="cursor:pointer; margin: 0; font-size: 11px; color: #fca5a5;">Despejar puntos de arrastre (Sin imán)</label></div>' +
             '<button type="button" id="arq2-calle-btn-editar" style="margin-top: 10px; width: 100%; padding: 8px; font-size: 11px; font-weight: bold; background: rgba(59,130,246,0.15); color: #93c5fd; border: 1px solid rgba(59,130,246,0.3); border-radius: 6px; cursor: pointer; transition: background 0.2s;">✏️ Editar una calle guardada</button>';
@@ -710,10 +711,13 @@ function arq2_ensurePanelExtras() {
         const arq2_updateSelectedCalleCurva = () => {
             if (arq2SelectedLineId) {
                 const line = allDrawnLines.find(l => l.id === arq2SelectedLineId);
-                if (line && line.tipo === 'calle-curva-arq2') {
+                if (line && (line.tipo === 'calle-curva-arq2' || line.tipo === 'calle')) {
                     line.calleCurvaAncho = arq2CalleCurvaAncho;
+                    if (line.tipo === 'calle') line.ancho = arq2CalleCurvaAncho;
                     line.calleCurvaCurvatura = draftCalleCurvaCurvatura;
                     line.calleCurvaAlpha = draftCalleCurvaAlpha;
+                    if (line.tipo === 'calle') line.alpha = draftCalleCurvaAlpha;
+                    line.calleColor = typeof draftCalleCurvaColor !== 'undefined' ? draftCalleCurvaColor : '#5a5f69';
                     line.calleRetorno = arq2CalleRetorno;
                     saveToLocal();
                 }
@@ -741,6 +745,12 @@ function arq2_ensurePanelExtras() {
             syncSVGElements();
             updateSVGPaths();
         });
+        document.getElementById('arq2-calle-color')?.addEventListener('input', (e) => {
+            if (typeof draftCalleCurvaColor !== 'undefined') draftCalleCurvaColor = e.target.value;
+            arq2_updateSelectedCalleCurva();
+            syncSVGElements();
+            updateSVGPaths();
+        });
         document.getElementById('arq2-calle-no-snap')?.addEventListener('change', (e) => {
             document.body.classList.toggle('calle-no-snap-active', e.target.checked);
         });
@@ -752,6 +762,7 @@ function arq2_ensurePanelExtras() {
         const oldBind = window.arq2_bindCalleCurvaAlphaSlider;
         window.arq2_bindCalleCurvaAlphaSlider = function() {
             const alphaEl = document.getElementById('arq2-calle-alpha');
+            const colorEl = document.getElementById('arq2-calle-color');
             if (!alphaEl || alphaEl.dataset.boundUpdated === '1') return;
             alphaEl.dataset.boundUpdated = '1';
             alphaEl.addEventListener('input', (e) => {
@@ -761,6 +772,15 @@ function arq2_ensurePanelExtras() {
                 syncSVGElements();
                 updateSVGPaths();
             });
+            if (colorEl && !colorEl.dataset.bound) {
+                colorEl.dataset.bound = '1';
+                colorEl.addEventListener('input', (e) => {
+                    if (typeof draftCalleCurvaColor !== 'undefined') draftCalleCurvaColor = e.target.value;
+                    arq2_updateSelectedCalleCurva();
+                    syncSVGElements();
+                    updateSVGPaths();
+                });
+            }
         };
         window.arq2_bindCalleCurvaAlphaSlider();
     } else if (!document.getElementById('arq2-calle-alpha') && document.getElementById('arq2-calle-curva-row')) {
