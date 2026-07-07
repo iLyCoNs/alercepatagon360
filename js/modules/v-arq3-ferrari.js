@@ -40,6 +40,31 @@ window.arquitecto3D = {
             });
         }
         
+        const btnCalleCurva = document.getElementById('arq2-tool-calle-curva');
+        if (btnCalleCurva) {
+            btnCalleCurva.addEventListener('click', () => {
+                if (this.isActive) {
+                    this.currentTool = 'calle-curva';
+                    this.clearTemp();
+                    const row = document.getElementById('arq2-calle-curva-row');
+                    if (row) row.style.display = 'flex';
+                }
+            });
+        }
+        
+        // El botón Lote Libre debe ocultar el panel de Calle
+        const btnLote = document.querySelector('.arq2-tool-btn[data-arq2-tool="lote-libre"]');
+        if (btnLote) {
+            btnLote.addEventListener('click', () => {
+                if (this.isActive) {
+                    this.currentTool = 'draw';
+                    this.clearTemp();
+                    const row = document.getElementById('arq2-calle-curva-row');
+                    if (row) row.style.display = 'none';
+                }
+            });
+        }
+
         // Inyectar grupos al encontrar el Motor Ferrari activo
         const checkFerrari = setInterval(() => {
             if (window.visor360 && window.visor360.getThreeScene) {
@@ -218,13 +243,21 @@ window.arquitecto3D = {
         container.addEventListener('dblclick', (e) => {
             if (!this.isActive) return;
             e.stopPropagation();
-            this.finishPolygon();
+            if (this.currentTool === 'calle-curva') {
+                this.finishStreet();
+            } else {
+                this.finishPolygon();
+            }
         }, { capture: true });
         
         container.addEventListener('contextmenu', (e) => {
             if (!this.isActive) return;
             e.preventDefault();
-            this.finishPolygon();
+            if (this.currentTool === 'calle-curva') {
+                this.finishStreet();
+            } else {
+                this.finishPolygon();
+            }
         });
     },
 
@@ -333,6 +366,11 @@ window.arquitecto3D = {
         const renderPts = [...this.tempPoints];
         if (ghostPoint) renderPts.push(ghostPoint);
 
+        if (this.currentTool === 'calle-curva' && renderPts.length >= 2) {
+            this.renderTempStreet(renderPts);
+            return;
+        }
+
         const geo = new THREE.BufferGeometry().setFromPoints(renderPts);
         const mat = new THREE.LineBasicMaterial({ 
             color: 0x10b981, // Verde
@@ -344,6 +382,62 @@ window.arquitecto3D = {
         
         this.tempLineMesh = new THREE.Line(geo, mat);
         this.group.add(this.tempLineMesh);
+    },
+
+    renderTempStreet: function(renderPts) {
+        if (!window.arq2_buildCalleCurvaGeometry) return;
+        
+        const pyEje = renderPts.map(p => {
+            const yaw = Math.atan2(p.x, p.z) * 180 / Math.PI;
+            const pitch = Math.asin(p.y / p.length()) * 180 / Math.PI;
+            return [pitch, yaw];
+        });
+
+        const geoData = window.arq2_buildCalleCurvaGeometry(
+            pyEje, 
+            window.arq2CalleCurvaAncho || 8, 
+            window.draftCalleCurvaAlpha ?? 0.7, 
+            window.arq2CalleRetorno || false
+        );
+        
+        if (!geoData || !geoData.fillPoly) return;
+
+        const streetPts = geoData.fillPoly.map(py => window.visor360.getVectorFromPitchYaw(py[0], py[1]));
+        
+        const geo = new THREE.BufferGeometry().setFromPoints(streetPts);
+        const mat = new THREE.LineBasicMaterial({ 
+            color: 0x94a3b8, // Gris calle
+            linewidth: 3, 
+            depthTest: false, 
+            transparent: true, 
+            opacity: 0.9 
+        });
+        
+        this.tempLineMesh = new THREE.Line(geo, mat);
+        this.group.add(this.tempLineMesh);
+
+        // Relleno temporal
+        if (!this.tempFillMesh) {
+            const fillGeo = new THREE.BufferGeometry();
+            const fillMat = new THREE.MeshBasicMaterial({
+                color: 0x94a3b8,
+                transparent: true,
+                opacity: window.draftCalleCurvaAlpha ?? 0.7,
+                side: THREE.DoubleSide,
+                depthTest: false
+            });
+            this.tempFillMesh = new THREE.Mesh(fillGeo, fillMat);
+            this.group.add(this.tempFillMesh);
+        }
+        
+        const vertices = [];
+        const vec2D = streetPts.map(p => new THREE.Vector2(Math.atan2(p.x, p.z), Math.asin(p.y / p.length())));
+        const faces = THREE.ShapeUtils.triangulateShape(vec2D, []);
+        faces.forEach(face => {
+            const pA = streetPts[face[0]], pB = streetPts[face[1]], pC = streetPts[face[2]];
+            vertices.push(pA.x, pA.y, pA.z, pB.x, pB.y, pB.z, pC.x, pC.y, pC.z);
+        });
+        this.tempFillMesh.geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
     },
 
     finishPolygon: function() {
@@ -368,10 +462,42 @@ window.arquitecto3D = {
         
         // Agregar los meshes a la escena
         this.group.add(newLote.lineMesh);
+        // Generar etiquetas finales para cada vértice
+        newLote.points.forEach((pt, i) => {
+            this.createPermanentLabel(pt, i + 1, loteId);
+        });
+        
+        window.updateCosturaEdges();
+    },
+
+    finishStreet: function() {
+        if (this.tempPoints.length < 2) {
+            this.clearTemp();
+            return;
+        }
+
+        const loteId = 'CALLE_3D_' + Date.now();
+        const finalEje = [...this.tempPoints];
+        
+        const newLote = {
+            id: loteId,
+            tipo: 'calle-curva',
+            points: finalEje, // El eje actua como points para marcadores
+            color: 0x94a3b8,
+            animStartTime: Date.now()
+        };
+
+        this.lotes.push(newLote);
+        this.clearTemp();
+        this.buildLoteMeshes(newLote);
+        
+        this.group.add(newLote.lineMesh);
         this.group.add(newLote.fillMesh);
         newLote.markerMeshes.forEach(m => this.vertexMarkerGroup.add(m));
         
-        this.updateCosturaEdges();
+        newLote.points.forEach((pt, i) => {
+            this.createPermanentLabel(pt, i + 1, loteId);
+        });
     },
 
     clearTemp: function() {
@@ -402,39 +528,66 @@ window.arquitecto3D = {
 
     buildLoteMeshes: function(lote) {
         const pts = [...lote.points];
-        if (pts.length < 3) return;
+        if (pts.length < 2) return;
         
-        pts.push(pts[0].clone()); // cerrar loop
+        let vertices = [];
+        let geo, mat;
 
-        // Línea
-        const geo = new THREE.BufferGeometry().setFromPoints(pts);
-        const mat = new THREE.LineBasicMaterial({ 
-            color: lote.color, 
-            linewidth: 3, 
-            depthTest: false,
-            transparent: true,
-            opacity: 0.8
-        });
+        if (lote.tipo === 'calle-curva') {
+            const pyEje = pts.map(p => [Math.asin(p.y / p.length()) * 180 / Math.PI, Math.atan2(p.x, p.z) * 180 / Math.PI]);
+            const geoData = window.arq2_buildCalleCurvaGeometry(
+                pyEje, 
+                lote.ancho || window.arq2CalleCurvaAncho || 8, 
+                lote.alpha ?? window.draftCalleCurvaAlpha ?? 0.7, 
+                lote.retorno || window.arq2CalleRetorno || false
+            );
+            if (geoData && geoData.fillPoly) {
+                const streetPts = geoData.fillPoly.map(py => window.visor360.getVectorFromPitchYaw(py[0], py[1]));
+                geo = new THREE.BufferGeometry().setFromPoints(streetPts);
+                mat = new THREE.LineBasicMaterial({ 
+                    color: lote.color, 
+                    linewidth: 3, 
+                    depthTest: false,
+                    transparent: true,
+                    opacity: 0.8
+                });
+                const vec2D = streetPts.map(p => new THREE.Vector2(Math.atan2(p.x, p.z), Math.asin(p.y / p.length())));
+                const faces = THREE.ShapeUtils.triangulateShape(vec2D, []);
+                faces.forEach(face => {
+                    const pA = streetPts[face[0]], pB = streetPts[face[1]], pC = streetPts[face[2]];
+                    vertices.push(pA.x, pA.y, pA.z, pB.x, pB.y, pB.z, pC.x, pC.y, pC.z);
+                });
+            }
+        } else {
+            pts.push(pts[0].clone()); // cerrar loop
+            geo = new THREE.BufferGeometry().setFromPoints(pts);
+            mat = new THREE.LineBasicMaterial({ 
+                color: lote.color, 
+                linewidth: 3, 
+                depthTest: false,
+                transparent: true,
+                opacity: 0.8
+            });
+            const cleanPts = pts.slice(0, -1);
+            const vec2D = cleanPts.map(p => new THREE.Vector2(Math.atan2(p.x, p.z), Math.asin(p.y / p.length())));
+            const faces = THREE.ShapeUtils.triangulateShape(vec2D, []);
+            faces.forEach(face => {
+                const pA = cleanPts[face[0]], pB = cleanPts[face[1]], pC = cleanPts[face[2]];
+                vertices.push(pA.x, pA.y, pA.z, pB.x, pB.y, pB.z, pC.x, pC.y, pC.z);
+            });
+        }
+
+        if (!geo) return;
+
         lote.lineMesh = new THREE.Line(geo, mat);
         lote.lineMesh.userData = { loteId: lote.id };
 
-        // Relleno
-        const vertices = [];
-        const cleanPts = pts.slice(0, -1); // Evitar el último punto duplicado
-        const vec2D = cleanPts.map(p => new THREE.Vector2(Math.atan2(p.x, p.z), Math.asin(p.y / p.length())));
-        const faces = THREE.ShapeUtils.triangulateShape(vec2D, []);
-        faces.forEach(face => {
-            const pA = cleanPts[face[0]];
-            const pB = cleanPts[face[1]];
-            const pC = cleanPts[face[2]];
-            vertices.push(pA.x, pA.y, pA.z, pB.x, pB.y, pB.z, pC.x, pC.y, pC.z);
-        });
         const fillGeo = new THREE.BufferGeometry();
         fillGeo.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
         const fillMat = new THREE.MeshBasicMaterial({
             color: lote.color,
             transparent: true,
-            opacity: 0.16, // Coincide con CSS (.16)
+            opacity: lote.tipo === 'calle-curva' ? (lote.alpha ?? 0.7) : 0.16,
             side: THREE.DoubleSide,
             depthTest: false
         });
@@ -538,22 +691,42 @@ window.arquitecto3D = {
         
         // === ACTUALIZACIÓN RÁPIDA DE BUFFERS (CERO LAG) ===
         const pts = [...lote.points];
-        pts.push(pts[0].clone());
         
-        // Actualizar línea
-        lote.lineMesh.geometry.setFromPoints(pts);
+        let vertices = [];
+        if (lote.tipo === 'calle-curva') {
+            const pyEje = pts.map(p => [Math.asin(p.y / p.length()) * 180 / Math.PI, Math.atan2(p.x, p.z) * 180 / Math.PI]);
+            const geoData = window.arq2_buildCalleCurvaGeometry(
+                pyEje, 
+                lote.ancho || window.arq2CalleCurvaAncho || 8, 
+                lote.alpha ?? window.draftCalleCurvaAlpha ?? 0.7, 
+                lote.retorno || window.arq2CalleRetorno || false
+            );
+            if (geoData && geoData.fillPoly) {
+                const streetPts = geoData.fillPoly.map(py => window.visor360.getVectorFromPitchYaw(py[0], py[1]));
+                lote.lineMesh.geometry.setFromPoints(streetPts);
+                const vec2D = streetPts.map(p => new THREE.Vector2(Math.atan2(p.x, p.z), Math.asin(p.y / p.length())));
+                const faces = THREE.ShapeUtils.triangulateShape(vec2D, []);
+                faces.forEach(face => {
+                    const pA = streetPts[face[0]], pB = streetPts[face[1]], pC = streetPts[face[2]];
+                    vertices.push(pA.x, pA.y, pA.z, pB.x, pB.y, pB.z, pC.x, pC.y, pC.z);
+                });
+            }
+        } else {
+            pts.push(pts[0].clone()); // cerrar loop
+            lote.lineMesh.geometry.setFromPoints(pts);
+            
+            // Actualizar relleno con triangulación correcta para cóncavos
+            const cleanPts = lote.points.slice(0, -1);
+            const vec2D = cleanPts.map(p => new THREE.Vector2(Math.atan2(p.x, p.z), Math.asin(p.y / p.length())));
+            const faces = THREE.ShapeUtils.triangulateShape(vec2D, []);
+            faces.forEach(face => {
+                const pA = cleanPts[face[0]];
+                const pB = cleanPts[face[1]];
+                const pC = cleanPts[face[2]];
+                vertices.push(pA.x, pA.y, pA.z, pB.x, pB.y, pB.z, pC.x, pC.y, pC.z);
+            });
+        }
         
-        // Actualizar relleno con triangulación correcta para cóncavos
-        const vertices = [];
-        const cleanPts = lote.points.slice(0, -1);
-        const vec2D = cleanPts.map(p => new THREE.Vector2(Math.atan2(p.x, p.z), Math.asin(p.y / p.length())));
-        const faces = THREE.ShapeUtils.triangulateShape(vec2D, []);
-        faces.forEach(face => {
-            const pA = cleanPts[face[0]];
-            const pB = cleanPts[face[1]];
-            const pC = cleanPts[face[2]];
-            vertices.push(pA.x, pA.y, pA.z, pB.x, pB.y, pB.z, pC.x, pC.y, pC.z);
-        });
         lote.fillMesh.geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
         lote.fillMesh.geometry.attributes.position.needsUpdate = true;
         
