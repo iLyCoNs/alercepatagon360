@@ -30,3 +30,7 @@ Por cada tarea o bug, la respuesta debe incluir estrictamente:
 - **Acierto a la primera:** Analiza el problema con bisturí. Si la cámara gira muy rápido, el problema suele ser un event loop, un cambio de API (mousedown a pointerdown), o el repintado de demasiados elementos (DOM lag). NO asumas de inmediato que el sistema actual es ineficiente; asume que hay un cuello de botella específico.
 - **Protección del ecosistema:** Nunca rompas código que ya funciona. Si tu arreglo para el "Componente A" implica desconectar u omitir la lógica del "Componente B", estás fallando en tu tarea.
 - **Micro-intervenciones:** Los problemas complejos casi siempre tienen soluciones diminutas. Sé tan analítico y pragmático como Sonnet. Identifica la causa raíz exacta, sin adivinar, y aplica la modificación más pequeña, segura y quirúrgica posible.
+
+## Protocolo Auto-Learn (Memoria Evolutiva)
+- **Extracción Automática:** Al finalizar con éxito una tarea compleja o resolver un bug crítico que involucró la arquitectura del motor, debes realizar una autoevaluación silenciosa de la lección técnica aprendida.
+- **Registro Inmediato:** Sin necesidad de que el usuario lo pida, utiliza tus herramientas de modificación de archivos para añadir esa lección técnica a este archivo `AGENTS.md` (bajo una sección de "Lecciones Históricas"). Esto garantiza que el sistema aprenda automáticamente de sus victorias y nunca repita un enfoque fallido en el futuro.
