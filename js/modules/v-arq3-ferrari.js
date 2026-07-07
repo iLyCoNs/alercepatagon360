@@ -204,7 +204,7 @@ window.arquitecto3D = {
             if (this.draggingInfo) {
                 e.stopPropagation(); // Evitar arrastre de cámara
                 const v3 = this.getVectorFromEvent(e);
-                if (v3) this.updateVertexPosition(this.draggingInfo, v3);
+                if (v3) this.updateVertexPosition(this.draggingInfo, v3, e);
                 return;
             }
 
@@ -226,29 +226,61 @@ window.arquitecto3D = {
         });
     },
 
+    getSnapToAnyVertex: function(screenX, screenY, skipLoteId = null, skipIndex = -1, threshold = 25) {
+        if (!window.visor360) return null;
+        const camera = window.visor360.getThreeCamera();
+        const renderer = window.visor360.getThreeRenderer();
+        const rect = renderer.domElement.getBoundingClientRect();
+        
+        let closestPt = null;
+        let minDist = threshold;
+        
+        const checkPoints = (pts, isTemp) => {
+            pts.forEach((pt3d, idx) => {
+                if (!isTemp && skipLoteId && skipLoteId === this.lotes.find(l=>l.points === pts)?.id && skipIndex === idx) return;
+                const pt = pt3d.clone();
+                pt.project(camera);
+                if (pt.z > 1) return;
+                
+                const sx = (pt.x * 0.5 + 0.5) * rect.width;
+                const sy = (1 - (pt.y * 0.5 + 0.5)) * rect.height;
+                const dist = Math.hypot(sx - screenX, sy - screenY);
+                if (dist < minDist) {
+                    minDist = dist;
+                    closestPt = pt3d.clone();
+                }
+            });
+        };
+        
+        this.lotes.forEach(lote => checkPoints(lote.points, false));
+        if (this.tempPoints.length > 0) checkPoints(this.tempPoints, true);
+        
+        return closestPt;
+    },
+
     addPoint: function(e) {
         // Lógica del "Imán" (Magnet) para cerrar el polígono
         const renderer = window.visor360.getThreeRenderer();
         const rect = renderer.domElement.getBoundingClientRect();
-        if (this.tempPoints.length >= 3) {
-            const mouse = new THREE.Vector2();
-            mouse.x = ( (e.clientX - rect.left) / rect.width ) * 2 - 1;
-            mouse.y = - ( (e.clientY - rect.top) / rect.height ) * 2 + 1;
-            
-            const pt = this.tempPoints[0].clone();
-            pt.project(window.visor360.getThreeCamera());
-            
-            const dx = (pt.x - mouse.x) * rect.width/2;
-            const dy = (pt.y - mouse.y) * rect.height/2;
-            
-            // Si está cerca del origen (imán)
-            if (Math.hypot(dx, dy) < 30) {
+        const mouse = new THREE.Vector2();
+        mouse.x = ( (e.clientX - rect.left) / rect.width ) * 2 - 1;
+        mouse.y = - ( (e.clientY - rect.top) / rect.height ) * 2 + 1;
+        
+        // Intentar imán global primero
+        const screenX = e.clientX - rect.left;
+        const screenY = e.clientY - rect.top;
+        const snapped = this.getSnapToAnyVertex(screenX, screenY);
+        
+        if (snapped && this.tempPoints.length >= 3) {
+            // Si el snap es con el primer punto del mismo polígono temporal, cerrar el lote
+            const firstPt = this.tempPoints[0];
+            if (snapped.distanceTo(firstPt) < 0.01) {
                 this.finishPolygon();
                 return;
             }
         }
 
-        const v3 = this.getVectorFromEvent(e);
+        const v3 = snapped || this.getVectorFromEvent(e);
         if (!v3) return;
         
         this.tempPoints.push(v3);
@@ -336,6 +368,8 @@ window.arquitecto3D = {
         this.group.add(newLote.lineMesh);
         this.group.add(newLote.fillMesh);
         newLote.markerMeshes.forEach(m => this.vertexMarkerGroup.add(m));
+        
+        this.updateCosturaEdges();
     },
 
     clearTemp: function() {
@@ -366,6 +400,8 @@ window.arquitecto3D = {
 
     buildLoteMeshes: function(lote) {
         const pts = [...lote.points];
+        if (pts.length < 3) return;
+        
         pts.push(pts[0].clone()); // cerrar loop
 
         // Línea
@@ -402,11 +438,9 @@ window.arquitecto3D = {
         
         // Nodos (Vértices) arrastrables
         lote.markerMeshes = [];
-        const markerGeo = new THREE.SphereGeometry(4, 16, 16);
+        const markerGeo = new THREE.SphereGeometry(3.5, 16, 16);
         const markerMat = new THREE.MeshBasicMaterial({ 
             color: 0xffffff, 
-            transparent: true, 
-            opacity: 0.8,
             depthTest: false 
         });
         
@@ -418,11 +452,83 @@ window.arquitecto3D = {
         });
     },
 
-    updateVertexPosition: function(info, v3) {
+    updateCosturaEdges: function() {
+        if (!this.sharedEdgesGroup) {
+            this.sharedEdgesGroup = new THREE.Group();
+            window.visor360.getThreeScene().add(this.sharedEdgesGroup);
+        }
+        
+        while(this.sharedEdgesGroup.children.length > 0) {
+            const child = this.sharedEdgesGroup.children[0];
+            if(child.geometry) child.geometry.dispose();
+            if(child.material) child.material.dispose();
+            this.sharedEdgesGroup.remove(child);
+        }
+        
+        const allSegments = [];
+        this.lotes.forEach(lote => {
+            const pts = lote.points;
+            if(pts.length < 3) return;
+            for (let i = 0; i < pts.length; i++) {
+                let p1 = pts[i];
+                let p2 = pts[(i+1) % pts.length];
+                allSegments.push({ lId: lote.id, p1, p2 });
+            }
+        });
+        
+        const shared = [];
+        for(let i = 0; i < allSegments.length; i++) {
+            for(let j = i + 1; j < allSegments.length; j++) {
+                const s1 = allSegments[i];
+                const s2 = allSegments[j];
+                if (s1.lId === s2.lId) continue;
+                
+                const d1 = s1.p1.distanceTo(s2.p1) < 5 && s1.p2.distanceTo(s2.p2) < 5;
+                const d2 = s1.p1.distanceTo(s2.p2) < 5 && s1.p2.distanceTo(s2.p1) < 5;
+                
+                if (d1 || d2) {
+                    shared.push(s1);
+                }
+            }
+        }
+        
+        shared.forEach(s => {
+            const bgGeo = new THREE.BufferGeometry().setFromPoints([s.p1, s.p2]);
+            const bgMat = new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 3, transparent: true, opacity: 0.6, depthTest: false });
+            const bgLine = new THREE.Line(bgGeo, bgMat);
+            this.sharedEdgesGroup.add(bgLine);
+
+            const geo = new THREE.BufferGeometry().setFromPoints([s.p1, s.p2]);
+            const mat = new THREE.LineDashedMaterial({
+                color: 0xffffff,
+                linewidth: 2,
+                dashSize: 8,
+                gapSize: 8,
+                depthTest: false,
+                transparent: true,
+                opacity: 0.9
+            });
+            const line = new THREE.Line(geo, mat);
+            line.computeLineDistances();
+            this.sharedEdgesGroup.add(line);
+        });
+    },
+
+    updateVertexPosition: function(info, rawV3, e) {
         const lote = this.lotes.find(l => l.id === info.loteId);
         if (!lote) return;
         
-        // Actualizar el vector en memoria
+        let v3 = rawV3;
+        // Snap al arrastrar vértices
+        if (e && window.visor360) {
+            const renderer = window.visor360.getThreeRenderer();
+            const rect = renderer.domElement.getBoundingClientRect();
+            const screenX = e.clientX - rect.left;
+            const screenY = e.clientY - rect.top;
+            const snapped = this.getSnapToAnyVertex(screenX, screenY, info.loteId, info.index);
+            if (snapped) v3 = snapped;
+        }
+
         lote.points[info.index].copy(v3);
         
         // === ACTUALIZACIÓN RÁPIDA DE BUFFERS (CERO LAG) ===
@@ -434,17 +540,19 @@ window.arquitecto3D = {
         
         // Actualizar relleno (triangulación fan-shape)
         const vertices = [];
-        const origin = pts[0];
-        for (let i = 1; i < pts.length - 2; i++) {
+        const origin = lote.points[0];
+        for (let i = 1; i < lote.points.length - 2; i++) {
             vertices.push(origin.x, origin.y, origin.z);
-            vertices.push(pts[i].x, pts[i].y, pts[i].z);
-            vertices.push(pts[i+1].x, pts[i+1].y, pts[i+1].z);
+            vertices.push(lote.points[i].x, lote.points[i].y, lote.points[i].z);
+            vertices.push(lote.points[i+1].x, lote.points[i+1].y, lote.points[i+1].z);
         }
         lote.fillMesh.geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
         lote.fillMesh.geometry.attributes.position.needsUpdate = true;
         
         // Actualizar el mesh de la esfera (nodo) que estamos moviendo
         lote.markerMeshes[info.index].position.copy(v3);
+        
+        this.updateCosturaEdges();
     },
 
     animate: function() {
