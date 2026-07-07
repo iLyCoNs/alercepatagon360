@@ -161,6 +161,7 @@ body.heatmap-mode g.lote-interactivo[data-status="vendido"] path { fill: rgba(23
 body.heatmap-mode g.lote-interactivo[data-status="no_disponible"] path { fill: rgba(148, 163, 184, 0.8) !important; filter: drop-shadow(0 0 15px rgba(148,163,184,0.8)); }
 .pnlm-compass { display: none !important; } .pnlm-load-button { background: #141923 !important; border-radius: 50% !important; }
 .pnlm-hotspot-base { z-index: 10 !important; transition: opacity 0.5s ease-out !important; }
+body.is-panning .pnlm-hotspot-base { display: none !important; pointer-events: none !important; }
 body.panorama-dragging .vertex-marker, body.panorama-dragging .franja-lot-label, body.calle-no-snap-active .vertex-marker { display: none !important; pointer-events: none !important; }
 body.arq2-active .franja-lot-label { display: none !important; pointer-events: none !important; }
 body:not(.loteo-overlay-ready) .pnlm-hotspot-base { opacity: 0 !important; pointer-events: none !important; }

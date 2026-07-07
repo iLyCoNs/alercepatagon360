@@ -119,33 +119,47 @@ function bindPanoramaPointerEvents() {
         startY = mock.clientY; 
         startTime = Date.now();
         
-        // --- Hit-Testing Espacial para Vértices Batch Rendering ---
+        // --- Hit-Testing Original Basado en DOM ---
         if ((typeof isDevModeDrawActive !== 'undefined' && isDevModeDrawActive) || (typeof isArquitecto2Active !== 'undefined' && isArquitecto2Active)) {
-            if (window.DOMCache && window.DOMCache.svgVerticesList) {
-                const rect = container.getBoundingClientRect();
-                const containerX = startX - rect.left;
-                const containerY = startY - rect.top;
-                
-                let hit = null, minDist = 20; // Radio táctil virtual (20px)
-                for (let i = 0; i < window.DOMCache.svgVerticesList.length; i++) {
-                    const v = window.DOMCache.svgVerticesList[i];
-                    if (v.sx === -999) continue;
-                    const d = Math.hypot(v.sx - containerX, v.sy - containerY);
-                    if (d < minDist) { minDist = d; hit = v; }
-                }
-                if (hit) {
-                    if (currentLineType === 'eraser' || (typeof arq2Tool !== 'undefined' && arq2Tool === 'eraser')) {
-                        if (typeof applyEraserDelete === 'function') applyEraserDelete(hit.lineId);
+            const hn = e.target.closest('.drawing-node') || e.target.closest('.origin-vertex') || e.target.closest('.pnlm-hotspot-base');
+            if (hn && hn.id) {
+                const hId = hn.id;
+                if (currentLineType === 'eraser' || (typeof arq2Tool !== 'undefined' && arq2Tool === 'eraser')) {
+                    const parts = hId.split('_');
+                    let lineId = null;
+                    if (hId.startsWith('arq2_temp_')) lineId = arq2TempLineId;
+                    else if (hId.startsWith('temp_base_')) lineId = currentTempLineId;
+                    else if (hId.startsWith('vert_base_')) lineId = parts.slice(2, -1).join('_');
+                    else if (hId.startsWith('arq2_lote_')) lineId = parts.slice(2, -1).join('_');
+                    else if (hId.startsWith('arq2_ctrl_')) lineId = parts.slice(2, -2).join('_');
+
+                    if (lineId && typeof applyEraserDelete === 'function') {
+                        applyEraserDelete(lineId);
                         if (typeof refreshAllHotspots === 'function') refreshAllHotspots(true);
                         if (typeof saveToLocal === 'function') saveToLocal();
-                    } else {
-                        draggingVertex = { lineId: hit.lineId, idx: hit.idx, startX, startY, target: hit.target, hsId: hit.hsId };
-                        // Forzar el estilo de dragging localmente hasta redibujar
-                        document.body.classList.add('vertex-is-dragging'); 
                     }
-                    e.preventDefault(); e.stopPropagation();
-                    return; // Detiene el paneo de cámara
+                } else {
+                    const parts = hId.split('_');
+                    if (hId.startsWith('arq2_temp_')) {
+                        draggingVertex = { lineId: arq2TempLineId, idx: parseInt(parts[2]), startX, startY, target: 'vertex', hsId: hId };
+                    } else if (hId.startsWith('temp_base_')) {
+                        draggingVertex = { lineId: currentTempLineId, idx: parseInt(parts[parts.length-1]), startX, startY, target: 'vertex', hsId: hId };
+                    } else if (hId.startsWith('vert_base_')) {
+                        const lineId = parts.slice(2, -1).join('_');
+                        draggingVertex = { lineId: lineId, idx: parseInt(parts[parts.length-1]), startX, startY, target: 'vertex', hsId: hId, el: hn };
+                    } else if (hId.startsWith('arq2_lote_')) {
+                        const idx = parseInt(parts[parts.length-1]);
+                        const lineId = parts.slice(2, -1).join('_');
+                        draggingVertex = { lineId: lineId, idx: idx, startX, startY, target: 'vertex', hsId: hId, el: hn };
+                    } else if (hId.startsWith('arq2_ctrl_')) {
+                        const target = parts[parts.length-1]; // 'p1' or 'p2'
+                        const idx = parseInt(parts[parts.length-2]);
+                        const lineId = parts.slice(2, -2).join('_');
+                        draggingVertex = { lineId: lineId, idx: idx, startX, startY, target: target, hsId: hId, el: hn };
+                    }
                 }
+                e.preventDefault(); e.stopPropagation();
+                return;
             }
         } 
         
@@ -164,8 +178,10 @@ function bindPanoramaPointerEvents() {
                 } catch(err) {}
             }
         }
+        document.body.classList.add('is-panning');
     }
     function handleEnd(e) {
+        document.body.classList.remove('is-panning');
         if (draggingCalleMove) {
             if (draggingCalleMove.el) draggingCalleMove.el.classList.remove('is-dragging');
             draggingCalleMove = null;

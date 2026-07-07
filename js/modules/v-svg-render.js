@@ -370,50 +370,6 @@ function updateSVGPaths() {
             const sx2 = cx + (sc2.x / sc2.z) * f;
             const sy2 = cy_screen - (sc2.y / sc2.z) * f;
             if (guideEl) guideEl.setAttribute('d', `M ${sx1},${sy1} L ${sx2},${sy2}`);
-        } else if (guideEl) {
-            guideEl.setAttribute('d', 'M -999 -999');
-        }
-    } else if (guideEl) {
-        guideEl.setAttribute('d', 'M -999 -999');
-    }
-    // Batch Rendering de Vértices a 60FPS
-    if (DOMCache.svgVerticesList) {
-        let dBase = '', dDrawing = '', dOrigin = '', dFranja = '';
-        const R_BASE = 5, R_ORIGIN = 8;
-        
-        DOMCache.svgVerticesList.forEach(v => {
-            const c = getCam(v.pitch, v.yaw);
-            if (c.z > 0.0001) {
-                const sx = cx + (c.x / c.z) * f;
-                const sy = cy_screen - (c.y / c.z) * f;
-                v.sx = sx; v.sy = sy; // Cache for spatial hit testing
-                
-                const isOrigin = (v.lineId === currentTempLineId && v.idx === 0 && currentLinePoints.length >= 3 && currentLineType !== 'cortar' && currentLineType !== 'eraser');
-                const isDrawing = (v.lineId === currentTempLineId);
-                
-                let r = isOrigin ? R_ORIGIN : R_BASE;
-                // Dibujar cuadrado rápido (M x,y h 2r v 2r h -2r Z) centrado
-                const drawStr = `M ${sx-r},${sy-r} h ${r*2} v ${r*2} h -${r*2} Z `;
-                
-                if (v.isFranjaElastic) dFranja += drawStr;
-                else if (isOrigin) dOrigin += drawStr;
-                else if (isDrawing) dDrawing += drawStr;
-                else dBase += drawStr;
-            } else {
-                v.sx = -999; v.sy = -999;
-            }
-        });
-
-        const pBase = document.getElementById('vertices-base-path');
-        const pFranja = document.getElementById('vertices-franja-path');
-        const pDrawing = document.getElementById('vertices-drawing-path');
-        const pOrigin = document.getElementById('vertices-origin-path');
-        
-        if (pBase) pBase.setAttribute('d', dBase || 'M -999 -999');
-        if (pFranja) pFranja.setAttribute('d', dFranja || 'M -999 -999');
-        if (pDrawing) pDrawing.setAttribute('d', dDrawing || 'M -999 -999');
-        if (pOrigin) pOrigin.setAttribute('d', dOrigin || 'M -999 -999');
-    }
 
     arq2_updateDemoLayer();
 }
