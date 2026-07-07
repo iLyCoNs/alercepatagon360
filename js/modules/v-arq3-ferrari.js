@@ -29,10 +29,12 @@ window.arquitecto3D = {
                     if (typeof window.isArquitecto2Active !== 'undefined') window.isArquitecto2Active = false;
                     if (typeof window.isDevModeDrawActive !== 'undefined') window.isDevModeDrawActive = false;
                     document.body.style.cursor = 'crosshair';
+                    if (this.vertexMarkerGroup) this.vertexMarkerGroup.visible = true;
                 } else {
                     btn.style.background = '';
                     btn.style.color = '#ef4444';
                     document.body.style.cursor = '';
+                    if (this.vertexMarkerGroup) this.vertexMarkerGroup.visible = false;
                     this.clearTemp();
                 }
             });
@@ -333,7 +335,7 @@ window.arquitecto3D = {
 
         const geo = new THREE.BufferGeometry().setFromPoints(renderPts);
         const mat = new THREE.LineBasicMaterial({ 
-            color: 0x22c55e, // Verde
+            color: 0x10b981, // Verde
             linewidth: 4, 
             depthTest: false, 
             transparent: true, 
@@ -356,8 +358,8 @@ window.arquitecto3D = {
         const newLote = {
             id: loteId,
             points: finalPts,
-            color: 0x22c55e, // Verde
-            animStartTime: Date.now() // Iniciar flash de animación
+            color: 0x10b981, // Verde original (Emerald #10b981)
+            animStartTime: Date.now()
         };
 
         this.lotes.push(newLote);
@@ -429,7 +431,7 @@ window.arquitecto3D = {
         const fillMat = new THREE.MeshBasicMaterial({
             color: lote.color,
             transparent: true,
-            opacity: 0.3,
+            opacity: 0.16, // Coincide con CSS (.16)
             side: THREE.DoubleSide,
             depthTest: false
         });
