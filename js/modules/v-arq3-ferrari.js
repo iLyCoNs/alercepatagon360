@@ -283,29 +283,49 @@ window.arquitecto3D = {
                     const r = pt.length();
                     const pitch = -Math.asin(pt.y / r) * 180 / Math.PI;
                     const yaw = -Math.atan2(pt.x, -pt.z) * 180 / Math.PI;
-                    
                     let tipoFinal = window.arq2PinSubTool || 'lote';
-                    let tituloFinal = 'Lote 00';
                     
-                    if (tipoFinal === 'horizonte') tituloFinal = prompt('📍 PIN HORIZONTE\nTítulo (ej: Volcán Osorno):');
-                    else if (tipoFinal === 'ruta') tituloFinal = prompt('🚗 PIN RUTA\nTítulo (ej: Ruta V-30):');
-                    else if (tipoFinal === 'vista360') tituloFinal = 'VISTA 360';
-                    else if (tipoFinal === 'casa360') tituloFinal = 'CASA TOUR';
-                    
-                    if (tipoFinal !== 'lote' && tituloFinal === null) return; // Cancelado
-
-                    let nuevoPin = {
-                        pitch: parseFloat(pitch.toFixed(3)),
-                        yaw: parseFloat(yaw.toFixed(3)),
-                        id: 'draft_' + Date.now(),
-                        numero: '',
-                        tipo: tipoFinal,
+                    const nuevoPin = { 
+                        pitch: parseFloat(pitch.toFixed(3)), 
+                        yaw: parseFloat(yaw.toFixed(3)), 
+                        id: 'nuevo_' + Date.now(),
+                        numero: '00',
+                        tipo: tipoFinal, 
+                        titulo: (tipoFinal === 'vista360°' || tipoFinal === 'casa360°') ? 'Vista' : '00', 
                         status: 'disponible',
-                        titulo: tituloFinal
+                        cssClass: 'hotspot-lote custom-hotspot' 
                     };
 
-                    if (typeof openPinEditor === 'function') {
-                        openPinEditor(nuevoPin, true); // Modal nativo de Arq 2.0
+                    if (typeof window.openPinEditor === 'function') {
+                        window.openPinEditor(nuevoPin, true);
+                        const modalEl = document.getElementById('pin-editor-modal');
+                        if (modalEl) {
+                            const observer = new MutationObserver((mutations) => {
+                                mutations.forEach(m => {
+                                    if (m.attributeName === 'class' && !modalEl.classList.contains('open')) {
+                                        observer.disconnect();
+                                        if (nuevoPin.id) {
+                                            if (tipoFinal === 'horizonte' || tipoFinal === 'ruta') {
+                                                if (window.PuntosHorizonte) window.PuntosHorizonte.push(nuevoPin);
+                                            } else {
+                                                if (window.BaseDatosLotes) window.BaseDatosLotes.push(nuevoPin);
+                                            }
+                                            try {
+                                                nuevoPin.createTooltipArgs = nuevoPin;
+                                                if (typeof window.generarSmartPin === 'function') nuevoPin.createTooltipFunc = window.generarSmartPin;
+                                                window.visor360.addHotSpot(nuevoPin);
+                                                if (typeof window.arq2_recalcAllPolygonStatuses === 'function') window.arq2_recalcAllPolygonStatuses();
+                                                if (typeof window.saveToLocal === 'function') window.saveToLocal();
+                                                if (typeof window.refreshAllHotspots === 'function') window.refreshAllHotspots();
+                                            } catch(err) { console.warn('[PinV2] addHotSpot error:', err); }
+                                        }
+                                    }
+                                });
+                            });
+                            observer.observe(modalEl, { attributes: true, attributeFilter: ['class'] });
+                        }
+                    } else {
+                        console.warn('[Arq3] openPinEditor no encontrado.');
                     }
                 }
                 return;
