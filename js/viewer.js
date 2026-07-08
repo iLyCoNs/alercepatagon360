@@ -3846,6 +3846,7 @@ function setExportBtnState(btn, html, bg, disabled) {
     btn.style.opacity = disabled ? '0.7' : '1';
 }
 async function GlobalCloudSave() {
+    alert("Iniciando proceso de guardado...");
     const btn = document.getElementById('btn-global-save');
     if (guardarNubeEnCurso) return;
     
