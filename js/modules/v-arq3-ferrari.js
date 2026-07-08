@@ -390,6 +390,67 @@ window.arquitecto3D = {
         return [pitch, yaw];
     },
 
+    buildNative3DStreet: function(pts, widthFactor, isClosed) {
+        if (pts.length < 2) return null;
+        
+        // 1. Create CatmullRomCurve3
+        const curve = new THREE.CatmullRomCurve3(pts, isClosed, 'chordal', 0.5);
+        
+        // Number of segments
+        const divisions = Math.max(20, pts.length * 10);
+        const smoothPts = curve.getPoints(divisions);
+        
+        const width = Math.max(1.0, (widthFactor || window.arq2CalleCurvaAncho || 5.5)) * 1.5; // Escala empírica
+
+        const leftPts = [];
+        const rightPts = [];
+        
+        for (let i = 0; i < smoothPts.length; i++) {
+            const pt = smoothPts[i];
+            
+            // Tangent calculation
+            let tangent;
+            if (i === 0) {
+                if (isClosed) tangent = new THREE.Vector3().subVectors(smoothPts[1], smoothPts[smoothPts.length - 2]).normalize();
+                else tangent = new THREE.Vector3().subVectors(smoothPts[1], smoothPts[0]).normalize();
+            } else if (i === smoothPts.length - 1) {
+                if (isClosed) tangent = new THREE.Vector3().subVectors(smoothPts[1], smoothPts[smoothPts.length - 2]).normalize();
+                else tangent = new THREE.Vector3().subVectors(smoothPts[i], smoothPts[i - 1]).normalize();
+            } else {
+                tangent = new THREE.Vector3().subVectors(smoothPts[i + 1], smoothPts[i - 1]).normalize();
+            }
+            
+            // Sphere normal at this point is simply the normalized vector from origin
+            const normal = pt.clone().normalize();
+            
+            // Binormal is perpendicular to tangent and normal, pointing "right"
+            const binormal = new THREE.Vector3().crossVectors(tangent, normal).normalize();
+            
+            // Push left and right
+            leftPts.push(pt.clone().add(binormal.clone().multiplyScalar(-width)));
+            rightPts.push(pt.clone().add(binormal.clone().multiplyScalar(width)));
+        }
+        
+        // Create Triangle Strip Fill
+        const vertices = [];
+        for (let i = 0; i < smoothPts.length - 1; i++) {
+            const l1 = leftPts[i], r1 = rightPts[i];
+            const l2 = leftPts[i+1], r2 = rightPts[i+1];
+            
+            // Triangle 1: l1, r1, l2
+            vertices.push(l1.x, l1.y, l1.z, r1.x, r1.y, r1.z, l2.x, l2.y, l2.z);
+            // Triangle 2: r1, r2, l2
+            vertices.push(r1.x, r1.y, r1.z, r2.x, r2.y, r2.z, l2.x, l2.y, l2.z);
+        }
+        
+        return {
+            centerPts: smoothPts,
+            leftPts: leftPts,
+            rightPts: rightPts,
+            fillVertices: vertices
+        };
+    },
+
     getSnapToAnyVertex: function(screenX, screenY, skipVertices = null, skipIndex = -1, threshold = 25) {
         if (!window.visor360) return null;
         const camera = window.visor360.getThreeCamera();
@@ -528,42 +589,24 @@ window.arquitecto3D = {
     },
 
     renderTempStreet: function(renderPts) {
-        if (!window.arq2_buildCalleCurvaGeometry) return;
-        
-        const pyEje = renderPts.map(p => this.getPitchYawFromVector(p));
-
-        const geoData = window.arq2_buildCalleCurvaGeometry(
-            pyEje, 
-            undefined, // ancho (fallback to slider)
-            undefined, // alpha (fallback to slider)
-            undefined  // retorno (fallback to slider)
-        );
-        
-        if (!geoData || !geoData.fillPoly) return;
+        const geoData = this.buildNative3DStreet(renderPts, undefined, false);
+        if (!geoData) return;
 
         this.tempLineMesh = new THREE.Group();
         
-        if (geoData.left && geoData.right) {
-            const lPts = geoData.left.map(py => window.visor360.getVectorFromPitchYaw(py[0], py[1]));
-            const rPts = geoData.right.map(py => window.visor360.getVectorFromPitchYaw(py[0], py[1]));
-            this.tempLineMesh.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(lPts), new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 3, depthTest: false, transparent: true, opacity: 0.8 })));
-            this.tempLineMesh.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(rPts), new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 3, depthTest: false, transparent: true, opacity: 0.8 })));
-        }
+        const lMat = new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 3, depthTest: false, transparent: true, opacity: 0.8 });
+        this.tempLineMesh.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(geoData.leftPts), lMat));
+        this.tempLineMesh.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(geoData.rightPts), lMat));
         
-        if (!geoData.ejeIsClosed && geoData.puntosSuavizados) {
-            const cPts = geoData.puntosSuavizados.map(py => window.visor360.getVectorFromPitchYaw(py[0], py[1]));
-            const cMat = new THREE.LineDashedMaterial({ color: 0xffdd00, linewidth: 4, dashSize: 8, gapSize: 8, depthTest: false, transparent: true, opacity: 0.8 });
-            const cGeo = new THREE.BufferGeometry().setFromPoints(cPts);
-            const cLine = new THREE.Line(cGeo, cMat);
-            cLine.computeLineDistances();
-            this.tempLineMesh.add(cLine);
-        }
+        const cMat = new THREE.LineDashedMaterial({ color: 0xffdd00, linewidth: 4, dashSize: 8, gapSize: 8, depthTest: false, transparent: true, opacity: 0.8 });
+        const cLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints(geoData.centerPts), cMat);
+        cLine.computeLineDistances();
+        this.tempLineMesh.add(cLine);
 
         this.group.add(this.tempLineMesh);
 
         // Relleno temporal
         if (!this.tempFillMesh) {
-            const fillGeo = new THREE.BufferGeometry();
             const fillMat = new THREE.MeshBasicMaterial({
                 color: 0x94a3b8,
                 transparent: true,
@@ -571,23 +614,11 @@ window.arquitecto3D = {
                 side: THREE.DoubleSide,
                 depthTest: false
             });
-            this.tempFillMesh = new THREE.Mesh(fillGeo, fillMat);
+            this.tempFillMesh = new THREE.Mesh(new THREE.BufferGeometry(), fillMat);
             this.group.add(this.tempFillMesh);
         }
         
-        const streetPts = geoData.fillPoly.map(py => window.visor360.getVectorFromPitchYaw(py[0], py[1]));
-        const vec2D = streetPts.map(p => {
-            const py = this.getPitchYawFromVector(p);
-            return new THREE.Vector2(py[1], py[0]); // yaw = x, pitch = y for 2D polygon
-        });
-        const faces = THREE.ShapeUtils.triangulateShape(vec2D, []);
-        
-        const vertices = [];
-        faces.forEach(face => {
-            const pA = streetPts[face[0]], pB = streetPts[face[1]], pC = streetPts[face[2]];
-            vertices.push(pA.x, pA.y, pA.z, pB.x, pB.y, pB.z, pC.x, pC.y, pC.z);
-        });
-        this.tempFillMesh.geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+        this.tempFillMesh.geometry.setAttribute('position', new THREE.Float32BufferAttribute(geoData.fillVertices, 3));
     },
 
     finishPolygon: function() {
@@ -730,42 +761,20 @@ window.arquitecto3D = {
         let geo, mat;
 
         if (lote.tipo === 'calle-curva') {
-            const pyEje = pts.map(p => this.getPitchYawFromVector(p));
-            const geoData = window.arq2_buildCalleCurvaGeometry(
-                pyEje, 
-                lote.ancho, 
-                lote.alpha, 
-                lote.retorno
-            );
-            if (geoData && geoData.fillPoly) {
-                const streetPts = geoData.fillPoly.map(py => window.visor360.getVectorFromPitchYaw(py[0], py[1]));
-                geo = new THREE.BufferGeometry().setFromPoints(streetPts);
+            const geoData = this.buildNative3DStreet(pts, lote.ancho, false);
+            if (geoData) {
+                geo = new THREE.BufferGeometry().setFromPoints(geoData.centerPts);
                 mat = new THREE.LineBasicMaterial({ visible: false }); // Ocultamos el borde gris feo
                 
-                if (geoData.left && geoData.right) {
-                    const lPts = geoData.left.map(py => window.visor360.getVectorFromPitchYaw(py[0], py[1]));
-                    const rPts = geoData.right.map(py => window.visor360.getVectorFromPitchYaw(py[0], py[1]));
-                    lote.streetLeftMesh = new THREE.Line(new THREE.BufferGeometry().setFromPoints(lPts), new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 3, depthTest: false }));
-                    lote.streetRightMesh = new THREE.Line(new THREE.BufferGeometry().setFromPoints(rPts), new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 3, depthTest: false }));
-                }
+                const lMat = new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 3, depthTest: false, transparent: true, opacity: 0.8 });
+                lote.streetLeftMesh = new THREE.Line(new THREE.BufferGeometry().setFromPoints(geoData.leftPts), lMat);
+                lote.streetRightMesh = new THREE.Line(new THREE.BufferGeometry().setFromPoints(geoData.rightPts), lMat);
                 
-                if (!geoData.ejeIsClosed && geoData.puntosSuavizados) {
-                    const cPts = geoData.puntosSuavizados.map(py => window.visor360.getVectorFromPitchYaw(py[0], py[1]));
-                    const cMat = new THREE.LineDashedMaterial({ color: 0xffdd00, linewidth: 4, dashSize: 8, gapSize: 8, depthTest: false });
-                    const cGeo = new THREE.BufferGeometry().setFromPoints(cPts);
-                    lote.streetCenterMesh = new THREE.Line(cGeo, cMat);
-                    lote.streetCenterMesh.computeLineDistances();
-                }
+                const cMat = new THREE.LineDashedMaterial({ color: 0xffdd00, linewidth: 4, dashSize: 8, gapSize: 8, depthTest: false, transparent: true, opacity: 0.8 });
+                lote.streetCenterMesh = new THREE.Line(new THREE.BufferGeometry().setFromPoints(geoData.centerPts), cMat);
+                lote.streetCenterMesh.computeLineDistances();
 
-                const vec2D = streetPts.map(p => {
-                    const py = this.getPitchYawFromVector(p);
-                    return new THREE.Vector2(py[1], py[0]);
-                });
-                const faces = THREE.ShapeUtils.triangulateShape(vec2D, []);
-                faces.forEach(face => {
-                    const pA = streetPts[face[0]], pB = streetPts[face[1]], pC = streetPts[face[2]];
-                    vertices.push(pA.x, pA.y, pA.z, pB.x, pB.y, pB.z, pC.x, pC.y, pC.z);
-                });
+                for (let i = 0; i < geoData.fillVertices.length; i++) vertices.push(geoData.fillVertices[i]);
             }
         } else {
             pts.push(pts[0].clone()); // cerrar loop
@@ -917,37 +926,19 @@ window.arquitecto3D = {
         
         let vertices = [];
         if (lote.tipo === 'calle-curva') {
-            const pyEje = pts.map(p => this.getPitchYawFromVector(p));
-            const geoData = window.arq2_buildCalleCurvaGeometry(
-                pyEje, 
-                lote.ancho, 
-                lote.alpha, 
-                lote.retorno
-            );
-            if (geoData && geoData.fillPoly) {
-                const streetPts = geoData.fillPoly.map(py => window.visor360.getVectorFromPitchYaw(py[0], py[1]));
-                if (lote.lineMesh) lote.lineMesh.geometry.setFromPoints(streetPts);
+            const geoData = this.buildNative3DStreet(pts, lote.ancho, false);
+            if (geoData) {
+                if (lote.lineMesh) lote.lineMesh.geometry.setFromPoints(geoData.centerPts);
                 
-                if (lote.streetLeftMesh && geoData.left) {
-                    const lPts = geoData.left.map(py => window.visor360.getVectorFromPitchYaw(py[0], py[1]));
-                    lote.streetLeftMesh.geometry.setFromPoints(lPts);
-                }
-                if (lote.streetRightMesh && geoData.right) {
-                    const rPts = geoData.right.map(py => window.visor360.getVectorFromPitchYaw(py[0], py[1]));
-                    lote.streetRightMesh.geometry.setFromPoints(rPts);
-                }
-                if (lote.streetCenterMesh && !geoData.ejeIsClosed && geoData.puntosSuavizados) {
-                    const cPts = geoData.puntosSuavizados.map(py => window.visor360.getVectorFromPitchYaw(py[0], py[1]));
-                    lote.streetCenterMesh.geometry.setFromPoints(cPts);
+                if (lote.streetLeftMesh) lote.streetLeftMesh.geometry.setFromPoints(geoData.leftPts);
+                if (lote.streetRightMesh) lote.streetRightMesh.geometry.setFromPoints(geoData.rightPts);
+                
+                if (lote.streetCenterMesh) {
+                    lote.streetCenterMesh.geometry.setFromPoints(geoData.centerPts);
                     lote.streetCenterMesh.computeLineDistances();
                 }
 
-                const vec2D = streetPts.map(p => new THREE.Vector2(Math.atan2(p.x, p.z), Math.asin(p.y / p.length())));
-                const faces = THREE.ShapeUtils.triangulateShape(vec2D, []);
-                faces.forEach(face => {
-                    const pA = streetPts[face[0]], pB = streetPts[face[1]], pC = streetPts[face[2]];
-                    vertices.push(pA.x, pA.y, pA.z, pB.x, pB.y, pB.z, pC.x, pC.y, pC.z);
-                });
+                for (let i = 0; i < geoData.fillVertices.length; i++) vertices.push(geoData.fillVertices[i]);
             }
         } else {
             pts.push(pts[0].clone()); // cerrar loop
