@@ -126,7 +126,7 @@
                 <button type="button" class="dev-btn arq2-tool-btn" data-arq2-tool="smart-pin-v2" style="color:#f59e0b;font-weight:800;">📍 Pin V2</button>
                 <button type="button" class="dev-btn arq2-tool-btn" data-arq2-tool="calle-curva-arq2" style="color:#3b82f6;font-weight:800;" title="Dibuja calles curvas que se adaptan al terreno y se empalman">🛣️ Calle 3D</button>
                 <button type="button" class="dev-btn" id="btn-arq3-mode" style="color:#ef4444;font-weight:900;border: 1px solid #ef4444;">🏎️ Arq 3.0 (3D)</button>
-                <button type="button" class="dev-btn" id="btn-global-save" style="color:#10b981;font-weight:900;border: 1px solid #10b981; background: rgba(16, 185, 129, 0.1);">💾 GUARDAR PROYECTO</button>
+                <button type="button" class="dev-btn" id="btn-global-save" onclick="GlobalCloudSave()" style="color:#10b981;font-weight:900;border: 1px solid #10b981; background: rgba(16, 185, 129, 0.1);">💾 GUARDAR PROYECTO</button>
             </div>
             <div class="arq2-tool-row" id="arq2-calle-curva-row" style="display: none; align-items: center; justify-content: space-between; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px; margin-bottom: 8px; flex-wrap: wrap; gap: 10px;">
                 <label style="font-size: 11px; color: #a1a1aa; display: flex; flex-direction: column; width: 100%;">
@@ -169,8 +169,6 @@
                 <button type="button" class="dev-btn" id="arq2-btn-north" style="color:#34d399;" title="Fijar la vista actual como el Norte Magnético">🧭 Norte</button>
                 <div style="width:1px;height:18px;background:rgba(255,255,255,0.18);margin:0 3px;"></div>
                 <button type="button" class="dev-btn nuke" id="arq2-btn-limpiar" title="Borrar TODOS los lotes, calles y pines">🧨 Limpiar</button>
-                <div style="width:1px;height:18px;background:rgba(255,255,255,0.18);margin:0 3px;"></div>
-                <button type="button" class="dev-btn export-ai" title="Guardar directamente en el servidor">☁️ NUBE</button>
             </div>
             <p id="arq2-fila-desc" class="arq2-fila-desc">FILA VARIABLE: dibuja el contorno COMPLETO de toda la hilera de terrenos de una vez (como un lote grande), igual que Lote Libre. Luego indicas cuántos lotes quieres adentro y el tamaño de cada uno — la herramienta reparte las divisiones internas proporcionalmente sola, sin que tengas que dibujar cada lote por separado.</p>
             <p id="arq2-semaphore" class="arq2-semaphore arq2-sem-green">Trazo limpio</p>
@@ -241,6 +239,7 @@
     <script src="js/modules/v-arq2-draw.js"></script>
     <script src="js/modules/v-arq2-events.js"></script>
     <script src="js/modules/v-arq3-ferrari.js"></script>
+    <script src="js/modules/v-arquitecto2.js"></script>
     <script src="js/modules/v-franja-curva.js"></script>
     <script src="js/modules/v-svg-render.js"></script>
     <script src="js/modules/v-panorama.js"></script>
