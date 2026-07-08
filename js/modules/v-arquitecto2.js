@@ -2426,6 +2426,7 @@ function arq2_clearDraft() {
     arq2PendingFila = null;
     arq2FilaCalle = null;
     arq2Guideline = null;
+    window.arq2VueloPoints = [];
     arq2_clearVisualFeedback();
     arq2_stopDemoAnimation();
     arq2_updateFilaCallePreview(); // clear preview SVG
@@ -3182,6 +3183,29 @@ function arq2_onPanoramaClick(mock, isDblClick) {
         const meta = arq2_findClickedLotMeta(mock, p, y);
         const draft = arq2_buildSmartPinDraft(meta);
         arq2_openSmartPinEditor(draft);
+        return true;
+    }
+
+    if (arq2Tool === 'vuelo-cinematico') {
+        const vp = {
+            pitch: parseFloat(visor360.getPitch().toFixed(3)),
+            yaw: parseFloat(visor360.getYaw().toFixed(3)),
+            hfov: parseFloat(visor360.getHfov().toFixed(3))
+        };
+        window.arq2VueloPoints = window.arq2VueloPoints || [];
+        window.arq2VueloPoints.push(vp);
+        arq2_setStatusText(`Cinemática: Punto ${window.arq2VueloPoints.length}/3 registrado`);
+        
+        if (window.arq2VueloPoints.length === 3) {
+            if (window.FRESIA_CFG?.vista === 'suelo') {
+                ConfigProyecto.vueloCinematicoSuelo = [...window.arq2VueloPoints];
+            } else {
+                ConfigProyecto.vueloCinematico = [...window.arq2VueloPoints];
+            }
+            if (typeof saveToLocal === 'function') saveToLocal();
+            alert(`¡Vuelo cinemático (${window.FRESIA_CFG?.vista || 'aéreo'}) guardado exitosamente!`);
+            arq2_setTool('lote-libre');
+        }
         return true;
     }
 

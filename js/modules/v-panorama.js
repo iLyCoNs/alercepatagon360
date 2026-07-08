@@ -87,7 +87,17 @@ function runPannellumIntroBootstrap() {
                     const searchStr = targetLoteId.toLowerCase().replace(/\s/g, ''); const targetPin = BaseDatosLotes.find( (l) => (l.titulo || '').toLowerCase().replace(/\s/g, '').includes(searchStr) || (l.numero || '') === targetLoteId, ); if (targetPin) visor360.lookAt(targetPin.pitch, targetPin.yaw, 70, 3000); else visor360.lookAt(5, 15, 100, 3000); 
                     setTimeout(() => { revealLoteoOverlay(); }, 3000);
                 } else {
-                    if (FRESIA_CFG.vista === 'suelo') {
+                    const customCinematic = (FRESIA_CFG.vista === 'suelo') ? ConfigProyecto.vueloCinematicoSuelo : ConfigProyecto.vueloCinematico;
+                    if (customCinematic && customCinematic.length === 3) {
+                        visor360.lookAt(customCinematic[0].pitch, customCinematic[0].yaw, customCinematic[0].hfov, 2500);
+                        setTimeout(() => {
+                            visor360.lookAt(customCinematic[1].pitch, customCinematic[1].yaw, customCinematic[1].hfov, 3000);
+                            setTimeout(() => {
+                                visor360.lookAt(customCinematic[2].pitch, customCinematic[2].yaw, customCinematic[2].hfov, 3500);
+                                setTimeout(() => { revealLoteoOverlay(); }, 3500);
+                            }, 3000);
+                        }, 2500);
+                    } else if (FRESIA_CFG.vista === 'suelo') {
                         // --- CINEMÁTICA VISTA SUELO (3 Puntos -> TinyHouse) ---
                         // Punto 1: Paneamos hacia un costado del Norte
                         visor360.lookAt(15, NorteOffset - 70, 110, 2500);
