@@ -248,6 +248,9 @@ window.arquitecto3D = {
         if (slider) {
             slider.addEventListener('input', () => {
                 window.arq2CalleCurvaAncho = parseFloat(slider.value) || 8;
+                const valLabel = document.getElementById('arq2-calle-ancho-val');
+                if (valLabel) valLabel.textContent = window.arq2CalleCurvaAncho + 'm';
+                
                 if (this.isActive && this.currentTool === 'calle-curva' && this.tempPoints.length >= 2) {
                     // Update preview instantly
                     const renderPts = [...this.tempPoints];
