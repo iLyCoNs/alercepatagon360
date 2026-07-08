@@ -121,8 +121,10 @@ function runPannellumIntroBootstrap() {
 }
 
 function bindPanoramaPointerEvents() {
-    const container = document.getElementById('panorama-container'); let startX, startY, startTime; let lastClickTime = 0;
+    const container = document.getElementById('panorama-container'); let startX, startY, startTime; let lastClickTime = 0; let isMultiTouch = false;
     function handleStart(e) { 
+        if (e.touches && e.touches.length > 1) { isMultiTouch = true; return; }
+        isMultiTouch = false;
         let mock = getMockEvent(e); 
         startX = mock.clientX; 
         startY = mock.clientY; 
@@ -145,6 +147,10 @@ function bindPanoramaPointerEvents() {
         }
     }
     function handleEnd(e) {
+        if (isMultiTouch) {
+            if (!e.touches || e.touches.length === 0) isMultiTouch = false;
+            return;
+        }
         if (draggingCalleMove) {
             if (draggingCalleMove.el) draggingCalleMove.el.classList.remove('is-dragging');
             draggingCalleMove = null;
@@ -291,6 +297,8 @@ function bindPanoramaPointerEvents() {
         }
     }
     function handleMove(e) {
+        if (e.touches && e.touches.length > 1) { isMultiTouch = true; return; }
+        if (isMultiTouch) return;
         let mock = getMockEvent(e); if (mock.clientX === undefined) return;
         if (draggingCalleMove) {
             if (e.cancelable) e.preventDefault();
@@ -388,6 +396,7 @@ function bindPanoramaPointerEvents() {
             }
         }, { passive: true });
         loteoSvg.addEventListener('touchstart', (e) => {
+            if (e.touches && e.touches.length > 1) return;
             if (!document.body.classList.contains('pin-v2-active') && !document.body.classList.contains('arq2-pin-active')) return;
             const mock = getMockEvent(e);
             svgPinStartX = mock.clientX;
