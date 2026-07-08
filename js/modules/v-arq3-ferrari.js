@@ -158,7 +158,16 @@ window.arquitecto3D = {
         
         const intersects = raycaster.intersectObjects(this.vertexMarkerGroup.children);
         if (intersects.length > 0) {
-            return intersects[0].object.userData; // { loteId, index }
+            const basePos = intersects[0].object.position;
+            const dragged = [];
+            this.vertexMarkerGroup.children.forEach(m => {
+                if (m.userData && m.userData.loteId) {
+                    if (m.position.distanceTo(basePos) < 0.1) {
+                        dragged.push(m.userData);
+                    }
+                }
+            });
+            return dragged.length > 0 ? dragged : null; // Retorna array de vértices enlazados
         }
         return null;
     },
@@ -320,8 +329,24 @@ window.arquitecto3D = {
 
             if (this.draggingInfo) {
                 e.stopPropagation(); // Evitar arrastre de cámara
-                const v3 = this.getVectorFromEvent(e);
-                if (v3) this.updateVertexPosition(this.draggingInfo, v3, e);
+                let v3 = this.getVectorFromEvent(e);
+                if (v3) {
+                    if (Array.isArray(this.draggingInfo)) {
+                        const renderer = window.visor360.getThreeRenderer();
+                        const rect = renderer.domElement.getBoundingClientRect();
+                        const screenX = e.clientX - rect.left;
+                        const screenY = e.clientY - rect.top;
+                        const snapped = this.getSnapToAnyVertex(screenX, screenY, this.draggingInfo);
+                        if (snapped) v3 = snapped;
+                        
+                        this.draggingInfo.forEach(info => {
+                            this.updateVertexPosition(info, v3, e, true);
+                        });
+                        this.updateCosturaEdges();
+                    } else {
+                        this.updateVertexPosition(this.draggingInfo, v3, e);
+                    }
+                }
                 return;
             }
 
@@ -351,7 +376,7 @@ window.arquitecto3D = {
         });
     },
 
-    getSnapToAnyVertex: function(screenX, screenY, skipLoteId = null, skipIndex = -1, threshold = 25) {
+    getSnapToAnyVertex: function(screenX, screenY, skipVertices = null, skipIndex = -1, threshold = 25) {
         if (!window.visor360) return null;
         const camera = window.visor360.getThreeCamera();
         const renderer = window.visor360.getThreeRenderer();
@@ -361,8 +386,15 @@ window.arquitecto3D = {
         let minDist = threshold;
         
         const checkPoints = (pts, isTemp) => {
+            const loteId = isTemp ? null : this.lotes.find(l=>l.points === pts)?.id;
             pts.forEach((pt3d, idx) => {
-                if (!isTemp && skipLoteId && skipLoteId === this.lotes.find(l=>l.points === pts)?.id && skipIndex === idx) return;
+                if (!isTemp && skipVertices) {
+                    if (Array.isArray(skipVertices)) {
+                        if (skipVertices.some(v => v.loteId === loteId && v.index === idx)) return;
+                    } else if (skipVertices === loteId && skipIndex === idx) {
+                        return; // compatibilidad anterior
+                    }
+                }
                 const pt = pt3d.clone();
                 pt.project(camera);
                 if (pt.z > 1) return;
@@ -778,13 +810,13 @@ window.arquitecto3D = {
         });
     },
 
-    updateVertexPosition: function(info, rawV3, e) {
+    updateVertexPosition: function(info, rawV3, e, skipSnap = false) {
         const lote = this.lotes.find(l => l.id === info.loteId);
         if (!lote) return;
         
         let v3 = rawV3;
         // Snap al arrastrar vértices
-        if (e && window.visor360) {
+        if (!skipSnap && e && window.visor360) {
             const renderer = window.visor360.getThreeRenderer();
             const rect = renderer.domElement.getBoundingClientRect();
             const screenX = e.clientX - rect.left;
@@ -839,7 +871,7 @@ window.arquitecto3D = {
         // Actualizar el mesh de la esfera (nodo) que estamos moviendo
         lote.markerMeshes[info.index].position.copy(v3);
         
-        this.updateCosturaEdges();
+        if (!skipSnap) this.updateCosturaEdges();
     },
 
     animate: function() {
