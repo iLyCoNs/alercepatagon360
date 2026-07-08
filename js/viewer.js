@@ -6706,7 +6706,7 @@ function setupDevModes() {
 
     const btnDeleteLastLine = document.createElement('button'); btnDeleteLastLine.id = 'btn-delete-last-line'; btnDeleteLastLine.style.display = 'none'; document.body.appendChild(btnDeleteLastLine);
     btnDeleteLastLine.addEventListener('click', () => { if (allDrawnLines.length > 0) { allDrawnLines.pop(); refreshAllHotspots(); saveToLocal(); } });
-    document.querySelectorAll('.nuke').forEach(btn => { btn.addEventListener('click', limpiarProyecto); }); document.querySelectorAll('.export-ai').forEach(btn => { btn.addEventListener('click', exportarDatosParaIA); });
+    document.querySelectorAll('.nuke').forEach(btn => { btn.addEventListener('click', limpiarProyecto); }); document.getElementById('btn-global-save')?.addEventListener('click', GlobalCloudSave);
     document.getElementById('btn-set-drone')?.addEventListener('click', () => { let val = prompt("Fijar Coordenada del Drone (Lat, Lng)\nEj: -41.3245, -72.9832", OrigenDrone ? `${OrigenDrone.lat}, ${OrigenDrone.lng}` : ""); if (val && val.includes(',')) { let parts = val.split(','); OrigenDrone = { lat: parseFloat(parts[0].trim()), lng: parseFloat(parts[1].trim()) }; saveToLocal(); document.getElementById('js-gmap-iframe').src = `https://maps.google.com/maps?q=${OrigenDrone.lat},${OrigenDrone.lng}&t=k&z=16&ie=UTF8&iwloc=&output=embed`; document.getElementById('js-directions-btn').href = `https://www.google.com/maps/dir/?api=1&destination=${OrigenDrone.lat},${OrigenDrone.lng}`; syncRutasDesdeOrigen({ refreshAll: true }).then(() => alert("📍 Origen Drone fijado.\nDistancias de pins ruta/horizonte recalculadas con tráfico.")); } });
     document.getElementById('btn-set-north')?.addEventListener('click', () => { if(!visor360) return; NorteOffset = visor360.getYaw(); saveToLocal(); alert("🧭 Brújula calibrada: El Norte Magnético apunta ahora a tu vista actual.\n(El parámetro 'norte' será incluido al Copiar Datos IA)."); const compassDial = document.getElementById('js-compass'); if(compassDial) compassDial.style.transform = `rotate(${-(visor360.getYaw() - NorteOffset)}deg)`; });
     document.getElementById('btn-edit-titles')?.addEventListener('click', () => { let t = prompt("Título del Proyecto (H1):", ConfigProyecto.titulo); let s = prompt("Subtítulo del Proyecto (p):", ConfigProyecto.subtitulo); if (t !== null && s !== null) { ConfigProyecto.titulo = t || 'PROYECTO INMOBILIARIO'; ConfigProyecto.subtitulo = s || ''; applyProjectConfig(); saveToLocal(); alert("Títulos actualizados temporalmente.\nAl hacer clic en 'COPIAR DATOS IA' se incluirán en el archivo JSON definitivo."); } });
@@ -6808,66 +6808,69 @@ function setExportBtnState(btn, html, bg, disabled) {
     btn.style.pointerEvents = disabled ? 'none' : 'auto';
     btn.style.opacity = disabled ? '0.7' : '1';
 }
-async function guardarEnNubeDirecto(btn, originalHtml) {
+async function GlobalCloudSave() {
+    const btn = document.getElementById('btn-global-save');
+    if (guardarNubeEnCurso) return;
+    
     const user = safeGetStorage('masterplan_user');
     const repo = safeGetStorage('masterplan_repo');
     const token = safeGetStorage('masterplan_token');
+    
     if (!user || !repo || !token) {
         alert('⚠️ Para guardar en la nube, inicia sesión una vez en admin.html con tu repositorio GitHub.\n\nLas credenciales quedan guardadas en este navegador.');
-        setExportBtnState(btn, originalHtml || '☁️ GUARDAR EN LA NUBE', '', false);
-        return false;
+        return;
     }
-    const localPayload = buildCloudPayload();
-    let shaRef = safeGetStorage(FRESIA_CFG.githubShaStorageKey) || '';
-    let remoteData = null;
-    try {
-        const remote = await fetchGithubJsonContents(user, repo, token, FRESIA_CFG.githubDatosFile);
-        shaRef = remote.sha || shaRef;
-        remoteData = remote.data;
-    } catch (e) {
-        shaRef = await fetchGithubFileSha(user, repo, token, FRESIA_CFG.githubDatosFile);
-    }
-    let merged;
-    if (FRESIA_CFG.mergeRemoteSueloFields) {
-        merged = mergeAerialWithRemoteSuelo(remoteData, localPayload);
-        delete merged.vista;
-    } else {
-        merged = remoteData ? Object.assign({}, remoteData, localPayload) : localPayload;
-    }
-    const jsonString = JSON.stringify(merged, null, 2);
-    const contentEncoded = btoa(unescape(encodeURIComponent(jsonString)));
-    const upload = await putGithubContents(
-        user, repo, token, FRESIA_CFG.githubDatosFile,
-        FRESIA_CFG.githubCommitMessage,
-        contentEncoded,
-        shaRef,
-        (sha) => safeSetStorage(FRESIA_CFG.githubShaStorageKey, sha)
-    );
-    if (upload.ok) {
-        setExportBtnState(btn, '✅ GUARDADO EN NUBE', '#10b981', true);
-        flashScreenSuccess();
-        setTimeout(() => setExportBtnState(btn, originalHtml || '☁️ GUARDAR EN LA NUBE', '', false), 2500);
-        return true;
-    }
-    alert('⛔ Error al guardar en GitHub: ' + (upload.message || 'desconocido'));
-    setExportBtnState(btn, originalHtml || '☁️ GUARDAR EN LA NUBE', '', false);
-    return false;
-}
-async function exportarDatosParaIA(event) {
-    if (guardarNubeEnCurso) return;
-    saveToLocal();
-    const btn = event && event.target ? event.target : null;
-    const originalHtml = btn ? btn.innerHTML : '☁️ GUARDAR EN LA NUBE';
+    
     guardarNubeEnCurso = true;
-    setExportBtnState(btn, '☁️ GUARDANDO...', '', true);
+    const originalHtml = btn ? btn.innerHTML : '💾 GUARDAR PROYECTO';
+    setExportBtnState(btn, '⏳ GUARDANDO...', '', true);
+    
     try {
-        if (window.self !== window.top) {
-            window.parent.postMessage({ type: FRESIA_CFG.savePostMessageType, payload: buildCloudPayload(), file: FRESIA_CFG.saveFile }, '*');
-            setExportBtnState(btn, '✅ GUARDADO EN NUBE', '#10b981', true);
-            setTimeout(() => setExportBtnState(btn, originalHtml, '', false), 2500);
-            return;
+        if (window.MotorFerrari && window.MotorFerrari.isActive) {
+            window.MotorFerrari.syncToAllDrawnLines();
         }
-        await guardarEnNubeDirecto(btn, originalHtml);
+        
+        saveToLocal();
+        
+        const localPayload = buildCloudPayload();
+        let shaRef = safeGetStorage(FRESIA_CFG.githubShaStorageKey) || '';
+        let remoteData = null;
+        
+        try {
+            const remote = await fetchGithubJsonContents(user, repo, token, FRESIA_CFG.githubDatosFile);
+            shaRef = remote.sha || shaRef;
+            remoteData = remote.data;
+        } catch (e) {
+            shaRef = await fetchGithubFileSha(user, repo, token, FRESIA_CFG.githubDatosFile);
+        }
+        
+        let merged;
+        if (FRESIA_CFG.mergeRemoteSueloFields) {
+            merged = mergeAerialWithRemoteSuelo(remoteData, localPayload);
+            delete merged.vista;
+        } else {
+            merged = remoteData ? Object.assign({}, remoteData, localPayload) : localPayload;
+        }
+        
+        const jsonString = JSON.stringify(merged, null, 2);
+        const contentEncoded = btoa(unescape(encodeURIComponent(jsonString)));
+        
+        const upload = await putGithubContents(
+            user, repo, token, FRESIA_CFG.githubDatosFile,
+            FRESIA_CFG.githubCommitMessage,
+            contentEncoded,
+            shaRef,
+            (sha) => safeSetStorage(FRESIA_CFG.githubShaStorageKey, sha)
+        );
+        
+        if (upload.ok) {
+            setExportBtnState(btn, '✅ GUARDADO EXCELENTE', '#10b981', true);
+            flashScreenSuccess();
+            setTimeout(() => setExportBtnState(btn, originalHtml, '', false), 2500);
+        } else {
+            alert('⛔ Error al guardar en GitHub: ' + (upload.message || 'desconocido'));
+            setExportBtnState(btn, originalHtml, '', false);
+        }
     } catch (error) {
         alert('⚠️ Error de conexión al guardar en la nube. Revisa tu internet e intenta de nuevo.');
         setExportBtnState(btn, originalHtml, '', false);
