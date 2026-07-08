@@ -388,29 +388,45 @@ function findClosestLineAtScreen(clientX, clientY, maxPx) {
     });
     return bestId;
 }
-function applyEraserDelete(lineId) {
-    if (lineId === currentTempLineId) { currentLinePoints = []; return true; }
-    const line = allDrawnLines.find(l => l.id === lineId);
-    if (!line) return false;
-    if (line.tipo === 'fila-variable-lote') {
-        allDrawnLines = allDrawnLines.filter(l => l.id !== line.id && l.arq2Grupo !== line.id);
-        return true;
-    }
-    const gid = line.tipo === 'franja-grupo' ? line.id : (line.franjaGrupo || null);
-    if (gid) {
-        allDrawnLines = allDrawnLines.filter(l => {
-            if (l.id === gid || l.franjaGrupo === gid) return false;
-            if (l.franjaStitch === gid || (l.franjaGrupo === gid)) return false;
+    function applyEraserDelete(lineId) {
+        if (lineId === currentTempLineId) { currentLinePoints = []; return true; }
+        const line = allDrawnLines.find(l => l.id === lineId);
+        if (!line) return false;
+        
+        const deleteFromFerrari = (id) => {
+            if (typeof window.MotorFerrari !== 'undefined' && window.MotorFerrari.deleteLoteById) {
+                window.MotorFerrari.deleteLoteById(id);
+            }
+        };
+        
+        if (line.tipo === 'fila-variable-lote') {
+            allDrawnLines = allDrawnLines.filter(l => {
+                if (l.id === line.id || l.arq2Grupo === line.id) {
+                    deleteFromFerrari(l.id);
+                    return false;
+                }
+                return true;
+            });
             return true;
-        });
-        if (!allDrawnLines.some(l => l.tipo === 'franja-grupo' || isMacroEdgeType(l.tipo) || l.tipo === 'area-invisible')) {
-            document.body.classList.remove('auto-macro-active');
         }
+        const gid = line.tipo === 'franja-grupo' ? line.id : (line.franjaGrupo || null);
+        if (gid) {
+            allDrawnLines = allDrawnLines.filter(l => {
+                if (l.id === gid || l.franjaGrupo === gid || l.franjaStitch === gid) {
+                    deleteFromFerrari(l.id);
+                    return false;
+                }
+                return true;
+            });
+            if (!allDrawnLines.some(l => l.tipo === 'franja-grupo' || isMacroEdgeType(l.tipo) || l.tipo === 'area-invisible')) {
+                document.body.classList.remove('auto-macro-active');
+            }
+            return true;
+        }
+        allDrawnLines = allDrawnLines.filter(l => l.id !== lineId);
+        deleteFromFerrari(lineId);
         return true;
     }
-    allDrawnLines = allDrawnLines.filter(l => l.id !== lineId);
-    return true;
-}
 function runEraserAtEvent(mock) {
     if (!visor360) return;
     const coords = visor360.mouseEventToCoords(mock);

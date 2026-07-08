@@ -1,21 +1,21 @@
 function arq2_getCalleBorders(line) {
     if (!line) return { left: [], right: [] };
     
-    if (typeof getCalleHalfWidthPx === 'function' && typeof arq2_offsetSplinePath === 'function') {
+    if (typeof arq2_getCalleCurvaHalfWidthDeg === 'function' && typeof arq2_offsetSplinePath === 'function') {
         if (line.tipo === 'calle-curva-arq2' || line.tipo === 'calle-curva-arq2-preview') {
-            const halfWidthPx = getCalleHalfWidthPx(line.ancho);
+            const halfWidthDeg = arq2_getCalleCurvaHalfWidthDeg(line.ancho);
             const isClosed = line.ejeIsClosed || false;
             const eje = line.puntosSuavizados || line.puntos || [];
             let ejeLoop = eje;
             if (isClosed && eje.length > 0 && Math.hypot(eje[0][0]-eje[eje.length-1][0], eje[0][1]-eje[eje.length-1][1]) < 0.05) {
                 ejeLoop = eje.slice(0, -1);
             }
-            const offset = arq2_offsetSplinePath(ejeLoop, halfWidthPx, line.calleRetorno || false, isClosed);
+            const offset = arq2_offsetSplinePath(ejeLoop, halfWidthDeg, line.calleRetorno || false, isClosed);
             if (offset && offset.left && offset.right) return offset;
         }
         if (line.tipo === 'calle') {
-            const halfWidthPx = getCalleHalfWidthPx(line.calleAncho);
-            const offset = arq2_offsetSplinePath(line.puntos, halfWidthPx, false, false);
+            const halfWidthDeg = arq2_getCalleCurvaHalfWidthDeg(line.calleAncho);
+            const offset = arq2_offsetSplinePath(line.puntos, halfWidthDeg, false, false);
             if (offset && offset.left && offset.right) return offset;
         }
     }
@@ -611,8 +611,9 @@ function arq2_snapVerticesToExisting(points) {
         allDrawnLines.forEach(line => {
             if (!arq2_isUniversalSnapTarget(line)) return;
             let linePts;
-            if (line.tipo === 'calle-curva-arq2' || line.tipo === 'calle-curva-arq2-preview') {
-                linePts = [...(line.left || []), ...(line.right || [])];
+            if (line.tipo === 'calle-curva-arq2' || line.tipo === 'calle-curva-arq2-preview' || line.tipo === 'calle') {
+                const borders = arq2_getCalleBorders(line);
+                linePts = [...(borders.left || []), ...(borders.right || [])];
             } else {
                 linePts = arq2_getSewPolygonPoints(line);
             }

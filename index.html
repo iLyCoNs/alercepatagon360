@@ -127,11 +127,31 @@
                 <button type="button" class="dev-btn arq2-tool-btn" data-arq2-tool="calle-curva-arq2" style="color:#3b82f6;font-weight:800;" title="Dibuja calles curvas que se adaptan al terreno y se empalman">🛣️ Calle 3D</button>
                 <button type="button" class="dev-btn" id="btn-arq3-mode" style="color:#ef4444;font-weight:900;border: 1px solid #ef4444;">🏎️ Arq 3.0 (3D)</button>
             </div>
-            <div class="arq2-tool-row" id="arq2-calle-curva-row" style="display: none; align-items: center; justify-content: space-between; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px; margin-bottom: 8px;">
+            <div class="arq2-tool-row" id="arq2-calle-curva-row" style="display: none; align-items: center; justify-content: space-between; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px; margin-bottom: 8px; flex-wrap: wrap; gap: 10px;">
                 <label style="font-size: 11px; color: #a1a1aa; display: flex; flex-direction: column; width: 100%;">
                     Ancho de Calle: <span id="arq2-calle-ancho-val" style="color: #fff; font-weight: bold; font-size: 14px;">8m</span>
                     <input type="range" id="arq2-calle-ancho" min="2" max="28" step="0.5" value="8" style="margin-top: 8px; width: 100%; accent-color: #3b82f6;">
                 </label>
+                <label style="font-size: 11px; color: #a1a1aa; display: flex; flex-direction: column; width: 100%;">
+                    Curvatura (0=recta): <span id="arq2-calle-curvatura-val" style="color: #fff; font-weight: bold; font-size: 14px;">5</span>
+                    <input type="range" id="arq2-calle-curvatura" min="0" max="10" step="1" value="5" style="margin-top: 8px; width: 100%; accent-color: #3b82f6;">
+                </label>
+                <label style="font-size: 11px; color: #a1a1aa; display: flex; flex-direction: column; width: 100%;">
+                    Transparencia: <span id="arq2-calle-alpha-val" style="color: #fff; font-weight: bold; font-size: 14px;">55%</span>
+                    <input type="range" id="arq2-calle-alpha" min="0.15" max="1" step="0.05" value="0.55" style="margin-top: 8px; width: 100%; accent-color: #3b82f6;">
+                </label>
+                <div style="margin-top: 6px; display: flex; justify-content: space-between; align-items: center; width: 100%; font-size: 11px; color: #a1a1aa;">
+                    <label>Color Base</label>
+                    <input type="color" id="arq2-calle-color" value="#5a5f69" style="width: 32px; height: 32px; padding: 0; border: none; border-radius: 4px; cursor: pointer; background: transparent;">
+                </div>
+                <div style="margin-top: 10px; display: flex; align-items: center; gap: 8px; width: 100%;">
+                    <input type="checkbox" id="arq2-calle-retorno" style="cursor:pointer;">
+                    <label for="arq2-calle-retorno" style="cursor:pointer; margin: 0; font-size: 11px; color: #fff;">Retorno Circular (Cul-de-sac)</label>
+                </div>
+                <div style="margin-top: 6px; display: flex; align-items: center; gap: 8px; width: 100%;">
+                    <input type="checkbox" id="arq2-calle-no-snap" style="cursor:pointer;">
+                    <label for="arq2-calle-no-snap" style="cursor:pointer; margin: 0; font-size: 11px; color: #fca5a5;">Despejar puntos de arrastre (Sin imán)</label>
+                </div>
             </div>
             <!-- ═══════════════════════════════════════════════════════════
                  FILA DE PINES ARQ2 — Calco del Modo Pines (Ctrl+P)

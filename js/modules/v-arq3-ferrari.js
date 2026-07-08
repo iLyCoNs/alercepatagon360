@@ -361,7 +361,13 @@ window.arquitecto3D = {
                         if(lote.markerMeshes) {
                             lote.markerMeshes.forEach(m => { m.geometry.dispose(); m.material.dispose(); this.vertexMarkerGroup.remove(m); });
                         }
+                        const loteIdStr = lote.id;
                         this.lotes.splice(idx, 1);
+                        if (typeof window.applyEraserDelete === 'function') {
+                            window.applyEraserDelete(loteIdStr);
+                            if (typeof window.syncSVGElements === 'function') window.syncSVGElements();
+                            if (typeof window.updateSVGPaths === 'function') window.updateSVGPaths();
+                        }
                     }
                 }
                 return;
