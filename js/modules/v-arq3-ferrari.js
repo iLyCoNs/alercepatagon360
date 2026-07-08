@@ -30,8 +30,14 @@ window.arquitecto3D = {
                     if (typeof window.isDevModeDrawActive !== 'undefined') window.isDevModeDrawActive = false;
                     document.body.style.cursor = 'crosshair';
                     if (this.vertexMarkerGroup) {
+                        this.vertexMarkerGroup.visible = true;
                         const chk = document.getElementById('arq2-lote-libre-hide-streets');
-                        this.vertexMarkerGroup.visible = chk ? !chk.checked : true;
+                        const hide = chk ? chk.checked : false;
+                        this.lotes.forEach(lote => {
+                            if (lote.tipo === 'calle-curva' && lote.markerMeshes) {
+                                lote.markerMeshes.forEach(m => m.visible = !hide);
+                            }
+                        });
                     }
                 } else {
                     btn.style.background = '';
@@ -87,9 +93,12 @@ window.arquitecto3D = {
         const hideVerticesChk = document.getElementById('arq2-lote-libre-hide-streets');
         if (hideVerticesChk) {
             hideVerticesChk.addEventListener('change', (e) => {
-                if (this.vertexMarkerGroup) {
-                    this.vertexMarkerGroup.visible = !e.target.checked;
-                }
+                const hide = e.target.checked;
+                this.lotes.forEach(lote => {
+                    if (lote.tipo === 'calle-curva' && lote.markerMeshes) {
+                        lote.markerMeshes.forEach(m => m.visible = !hide);
+                    }
+                });
             });
         }
 
@@ -344,6 +353,9 @@ window.arquitecto3D = {
                         const lote = this.lotes[idx];
                         if(lote.lineMesh) { lote.lineMesh.geometry.dispose(); lote.lineMesh.material.dispose(); this.group.remove(lote.lineMesh); }
                         if(lote.fillMesh) { lote.fillMesh.geometry.dispose(); lote.fillMesh.material.dispose(); this.group.remove(lote.fillMesh); }
+                        if(lote.streetLeftMesh) { lote.streetLeftMesh.geometry.dispose(); lote.streetLeftMesh.material.dispose(); this.group.remove(lote.streetLeftMesh); }
+                        if(lote.streetRightMesh) { lote.streetRightMesh.geometry.dispose(); lote.streetRightMesh.material.dispose(); this.group.remove(lote.streetRightMesh); }
+                        if(lote.streetCenterMesh) { lote.streetCenterMesh.geometry.dispose(); lote.streetCenterMesh.material.dispose(); this.group.remove(lote.streetCenterMesh); }
                         if(lote.markerMeshes) {
                             lote.markerMeshes.forEach(m => { m.geometry.dispose(); m.material.dispose(); this.vertexMarkerGroup.remove(m); });
                         }
@@ -574,12 +586,12 @@ window.arquitecto3D = {
         this.tempPoints.push(v3);
         
         // Agregar esfera visual temporal
-        const markerGeo = new THREE.SphereGeometry(3, 16, 16); 
+        const markerGeo = new THREE.SphereGeometry(1.2, 16, 16); 
         const markerMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
         const marker = new THREE.Mesh(markerGeo, markerMat);
         
         // Efecto Neon temporal
-        const glowGeoTemp = new THREE.SphereGeometry(5, 16, 16);
+        const glowGeoTemp = new THREE.SphereGeometry(2.0, 16, 16);
         const glowMatTemp = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.4, depthTest: false });
         const glowTemp = new THREE.Mesh(glowGeoTemp, glowMatTemp);
         marker.add(glowTemp);
@@ -696,7 +708,7 @@ window.arquitecto3D = {
         const newLote = {
             id: loteId,
             points: finalPts,
-            color: 0x10b981, // Verde original (Emerald #10b981)
+            color: 0xffffff, // Blanca neón premium
             animStartTime: Date.now()
         };
 
@@ -888,12 +900,12 @@ window.arquitecto3D = {
         
         // Nodos (Vértices) arrastrables con Neón Blanco Premium
         lote.markerMeshes = [];
-        const markerGeo = new THREE.SphereGeometry(3.5, 16, 16);
+        const markerGeo = new THREE.SphereGeometry(1.4, 16, 16);
         const markerMat = new THREE.MeshBasicMaterial({ 
             color: 0xffffff, 
             depthTest: false 
         });
-        const glowGeo = new THREE.SphereGeometry(6.5, 16, 16);
+        const glowGeo = new THREE.SphereGeometry(2.6, 16, 16);
         const glowMat = new THREE.MeshBasicMaterial({ 
             color: 0xffffff, 
             transparent: true, 
@@ -902,12 +914,18 @@ window.arquitecto3D = {
             depthTest: false 
         });
         
+        const chk = document.getElementById('arq2-lote-libre-hide-streets');
+        const hideStreets = chk ? chk.checked : false;
+
         lote.points.forEach((p, index) => {
             const m = new THREE.Mesh(markerGeo, markerMat);
             const mGlow = new THREE.Mesh(glowGeo, glowMat);
             m.add(mGlow); // Anidar el brillo neón al marcador principal
             m.position.copy(p);
             m.userData = { loteId: lote.id, index: index };
+            if (lote.tipo === 'calle-curva' && hideStreets) {
+                m.visible = false;
+            }
             lote.markerMeshes.push(m);
         });
     },
@@ -1136,7 +1154,7 @@ window.arquitecto3D = {
                 id: line.id,
                 tipo: (line.tipo === 'lote') ? 'lote' : 'calle-curva',
                 points: v3Pts,
-                color: line.color || (line.tipo === 'lote' ? 0x10b981 : 0x94a3b8),
+                color: line.color || (line.tipo === 'lote' ? 0xffffff : 0x94a3b8),
                 ancho: line.calleCurvaAncho || line.ancho || 8,
                 alpha: line.calleCurvaAlpha || line.alpha || 0.7
             };
