@@ -476,6 +476,21 @@ window.arquitecto3D = {
         return [pitch, yaw];
     },
 
+    projectTo2DPlane: function(pts) {
+        if (pts.length < 3) return [];
+        const center = new THREE.Vector3(0,0,0);
+        pts.forEach(p => center.add(p));
+        center.normalize();
+        
+        let up = new THREE.Vector3(0, 1, 0);
+        if (Math.abs(center.y) > 0.99) up.set(1, 0, 0);
+        
+        const u = new THREE.Vector3().crossVectors(up, center).normalize();
+        const v = new THREE.Vector3().crossVectors(center, u).normalize();
+        
+        return pts.map(p => new THREE.Vector2(p.dot(u), p.dot(v)));
+    },
+
     buildNative3DStreet: function(pts, widthFactor, isClosed, curvaturaFactor) {
         if (pts.length < 2) return null;
         
@@ -914,10 +929,7 @@ window.arquitecto3D = {
                 opacity: 0.8
             });
             const cleanPts = pts.slice(0, -1);
-            const vec2D = cleanPts.map(p => {
-                const py = this.getPitchYawFromVector(p);
-                return new THREE.Vector2(py[1], py[0]);
-            });
+            const vec2D = this.projectTo2DPlane(cleanPts);
             const faces = THREE.ShapeUtils.triangulateShape(vec2D, []);
             faces.forEach(face => {
                 const pA = cleanPts[face[0]], pB = cleanPts[face[1]], pC = cleanPts[face[2]];
@@ -1091,10 +1103,7 @@ window.arquitecto3D = {
             
             // Actualizar relleno con triangulación correcta para cóncavos
             const cleanPts = lote.points; // lote.points ya no tiene el loop cerrado, pts sí
-            const vec2D = cleanPts.map(p => {
-                const py = this.getPitchYawFromVector(p);
-                return new THREE.Vector2(py[1], py[0]);
-            });
+            const vec2D = this.projectTo2DPlane(cleanPts);
             const faces = THREE.ShapeUtils.triangulateShape(vec2D, []);
             faces.forEach(face => {
                 const pA = cleanPts[face[0]];
