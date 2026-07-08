@@ -560,8 +560,15 @@ window.arquitecto3D = {
     renderTemp: function(ghostPoint = null) {
         if (this.tempLineMesh) {
             this.group.remove(this.tempLineMesh);
-            this.tempLineMesh.geometry.dispose();
-            this.tempLineMesh.material.dispose();
+            if (this.tempLineMesh.isGroup) {
+                this.tempLineMesh.children.forEach(c => {
+                    if(c.geometry) c.geometry.dispose();
+                    if(c.material) c.material.dispose();
+                });
+            } else {
+                if (this.tempLineMesh.geometry) this.tempLineMesh.geometry.dispose();
+                if (this.tempLineMesh.material) this.tempLineMesh.material.dispose();
+            }
             this.tempLineMesh = null;
         }
 
@@ -706,6 +713,13 @@ window.arquitecto3D = {
             }
         }
         this.tempLineMesh = null;
+        
+        if (this.tempFillMesh) {
+            this.group.remove(this.tempFillMesh);
+            if(this.tempFillMesh.geometry) this.tempFillMesh.geometry.dispose();
+            if(this.tempFillMesh.material) this.tempFillMesh.material.dispose();
+        }
+        this.tempFillMesh = null;
         
         // Limpiar etiquetas de vértices
         if (this.tempLabels) {
