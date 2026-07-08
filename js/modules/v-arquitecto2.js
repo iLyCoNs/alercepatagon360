@@ -727,13 +727,26 @@ function arq2_smoothCalleAxis(points) {
         }
     }
     
-    if (curvatura <= 0) return linearPts; 
-    
     const catmull = arq2_catmullRomOpen(points, 12);
+    
+    // Centripetal clamp: prevent catmull from overshooting past the segment bounds which causes 360 knots
+    for (let i = 0; i < catmull.length; i++) {
+        const lin = linearPts[i];
+        if (lin) {
+            // Maximum deviation allowed from linear segment is roughly the segment length
+            const maxDev = 3.0; // max degrees deviation
+            const dx = catmull[i][0] - lin[0], dy = catmull[i][1] - lin[1];
+            const dev = Math.hypot(dx, dy);
+            if (dev > maxDev) {
+                catmull[i][0] = lin[0] + (dx / dev) * maxDev;
+                catmull[i][1] = lin[1] + (dy / dev) * maxDev;
+            }
+        }
+    }
+
     if (curvatura >= 10) return catmull;
     
     const t = curvatura / 10;
-    
     return catmull.map((c, i) => {
         const r = linearPts[i] || c;
         return [r[0] + (c[0] - r[0]) * t, r[1] + (c[1] - r[1]) * t];
@@ -838,60 +851,56 @@ function arq2_isCalleEjeClosed(eje) {
 function arq2_offsetSplinePath(smoothedPoints, halfWidthDeg, calleRetorno = false, isClosed = false) {
     if (!smoothedPoints || smoothedPoints.length < 2) return { left: [], right: [] };
     const left = [], right = [];
-    const MITER_LIMIT = 10.0;
     const n = smoothedPoints.length;
     const limit = isClosed ? n : (calleRetorno ? n - 1 : n);
 
-    // Work entirely in PY (pitch/yaw degree) space.
-    // Compute tangent as the pitch/yaw direction vector, then rotate 90Ã‚Â° for the normal.
-    // halfWidthDeg is the half-width in degrees of pitch/yaw arc.
     for (let i = 0; i < limit; i++) {
         const cur = smoothedPoints[i];
-        let nx, ny; // normal in PY space
-
+        
         if (!isClosed && (i === 0 || i === n - 1)) {
-            // Endpoint: single segment tangent
             const ref = i === 0 ? smoothedPoints[Math.min(1, n - 1)]
                                  : smoothedPoints[Math.max(0, n - 2)];
             const dx = (i === 0) ? ref[0] - cur[0] : cur[0] - ref[0];
             const dy = (i === 0) ? ref[1] - cur[1] : cur[1] - ref[1];
             const len = Math.hypot(dx, dy);
             if (len < 1e-8) continue;
-            // Normal = rotate tangent 90Ã‚Â°: (-dy, dx)
-            nx = -dy / len; ny = dx / len;
+            const nx = -dy / len, ny = dx / len;
+            left.push([parseFloat((cur[0] + nx * halfWidthDeg).toFixed(4)), parseFloat((cur[1] + ny * halfWidthDeg).toFixed(4))]);
+            right.push([parseFloat((cur[0] - nx * halfWidthDeg).toFixed(4)), parseFloat((cur[1] - ny * halfWidthDeg).toFixed(4))]);
         } else {
-            // Interior point: miter bisector in PY space
             const iPrev = isClosed ? (i - 1 + n) % n : i - 1;
             const iNext = isClosed ? (i + 1) % n : i + 1;
             const prev = smoothedPoints[iPrev];
             const next = smoothedPoints[iNext];
             const dxi = cur[0] - prev[0], dyi = cur[1] - prev[1];
             const dxo = next[0] - cur[0], dyo = next[1] - cur[1];
-            const leni = Math.hypot(dxi, dyi);
-            const leno = Math.hypot(dxo, dyo);
+            const leni = Math.hypot(dxi, dyi), leno = Math.hypot(dxo, dyo);
             if (leni < 1e-8 || leno < 1e-8) continue;
-            const nxi = -dyi / leni, nyi = dxi / leni; // incoming normal
-            const nxo = -dyo / leno, nyo = dxo / leno; // outgoing normal
-            const mx = nxi + nxo, my = nyi + nyo;
-            const mLen = Math.hypot(mx, my);
-            if (mLen < 1e-8) {
-                nx = nxi; ny = nyi;
+            const nxi = -dyi / leni, nyi = dxi / leni;
+            const nxo = -dyo / leno, nyo = dxo / leno;
+            const dot = nxi * nxo + nyi * nyo;
+            
+            if (dot < 0.5) {
+                left.push([parseFloat((cur[0] + nxi * halfWidthDeg).toFixed(4)), parseFloat((cur[1] + nyi * halfWidthDeg).toFixed(4))]);
+                right.push([parseFloat((cur[0] - nxi * halfWidthDeg).toFixed(4)), parseFloat((cur[1] - nyi * halfWidthDeg).toFixed(4))]);
+                left.push([parseFloat((cur[0] + nxo * halfWidthDeg).toFixed(4)), parseFloat((cur[1] + nyo * halfWidthDeg).toFixed(4))]);
+                right.push([parseFloat((cur[0] - nxo * halfWidthDeg).toFixed(4)), parseFloat((cur[1] - nyo * halfWidthDeg).toFixed(4))]);
             } else {
-                const dot = nxi * nxo + nyi * nyo;
-                const miterScale = 2.0 / (1.0 + Math.max(-0.9, dot));
-                const cappedScale = Math.min(miterScale, MITER_LIMIT);
-                nx = (mx / mLen) * cappedScale;
-                ny = (my / mLen) * cappedScale;
+                const mx = nxi + nxo, my = nyi + nyo;
+                const mLen = Math.hypot(mx, my);
+                if (mLen < 1e-8) {
+                    left.push([parseFloat((cur[0] + nxi * halfWidthDeg).toFixed(4)), parseFloat((cur[1] + nyi * halfWidthDeg).toFixed(4))]);
+                    right.push([parseFloat((cur[0] - nxi * halfWidthDeg).toFixed(4)), parseFloat((cur[1] - nyi * halfWidthDeg).toFixed(4))]);
+                } else {
+                    const miterScale = 2.0 / (1.0 + Math.max(-0.9, dot));
+                    const cappedScale = Math.min(miterScale, 2.5);
+                    const nx = (mx / mLen) * cappedScale;
+                    const ny = (my / mLen) * cappedScale;
+                    left.push([parseFloat((cur[0] + nx * halfWidthDeg).toFixed(4)), parseFloat((cur[1] + ny * halfWidthDeg).toFixed(4))]);
+                    right.push([parseFloat((cur[0] - nx * halfWidthDeg).toFixed(4)), parseFloat((cur[1] - ny * halfWidthDeg).toFixed(4))]);
+                }
             }
         }
-
-        // Apply offset directly in PY degrees
-        const lPitch = cur[0] + nx * halfWidthDeg;
-        const lYaw   = cur[1] + ny * halfWidthDeg;
-        const rPitch = cur[0] - nx * halfWidthDeg;
-        const rYaw   = cur[1] - ny * halfWidthDeg;
-        left.push([parseFloat(lPitch.toFixed(4)), parseFloat(lYaw.toFixed(4))]);
-        right.push([parseFloat(rPitch.toFixed(4)), parseFloat(rYaw.toFixed(4))]);
     }
     
     if (calleRetorno) {
