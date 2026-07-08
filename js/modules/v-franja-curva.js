@@ -93,7 +93,7 @@ function getHotspotsConfig() {
     });
     if (isSvgRenderAllowed()) {
         allDrawnLines.forEach(linea => {
-            if (linea.tipo === 'calle' && linea.puntos.length >= 2) {
+            if ((linea.tipo === 'calle' || linea.tipo === 'calle-curva') && linea.puntos.length >= 2) {
                 const st = getCalleStyleForLine(linea);
                 const mid = getCalleMidpointPY(linea.puntos);
                 if (mid && st.showLabel) hotspots.push({ "id": "calle_lbl_" + linea.id, "pitch": mid[0], "yaw": mid[1], "createTooltipFunc": renderCalleServidumbreLabel, "createTooltipArgs": { lineId: linea.id, labelScale: st.labelScale } });

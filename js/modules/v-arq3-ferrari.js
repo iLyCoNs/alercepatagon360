@@ -290,6 +290,15 @@ window.arquitecto3D = {
         bindSlider3D('arq2-calle-alpha', 'alpha', 'draftCalleCurvaAlpha', v => Math.round(v * 100) + '%');
 
         container.addEventListener('pointerdown', (e) => {
+            if (this.currentTool === 'lote' || this.currentTool === 'calle-curva') {
+                const pt = this.getVectorFromEvent(e);
+                if (pt) {
+                    if (this.tempPoints.length === 0 || this.tempPoints[this.tempPoints.length - 1].distanceTo(pt) > 0.1) {
+                        this.tempPoints.push(pt.clone());
+                        this.renderTempStreet(this.tempPoints);
+                    }
+                }
+            }
             if (!this.isActive) return;
             
             // Si estamos en modo Pin V2, insertar pin
@@ -1240,7 +1249,7 @@ window.arquitecto3D = {
         if (!window.allDrawnLines) return;
 
         window.allDrawnLines.forEach(line => {
-            if (line.tipo !== 'calle-curva-arq2' && line.tipo !== 'calle' && line.tipo !== 'lote') return;
+            if (line.tipo !== 'calle-curva-arq2' && line.tipo !== 'calle' && line.tipo !== 'lote' && line.tipo !== 'calle-curva') return;
             if (this.lotes.find(l => l.id === line.id)) return;
             
             const ptsArray = line.ejeOriginal || line.puntos || [];
