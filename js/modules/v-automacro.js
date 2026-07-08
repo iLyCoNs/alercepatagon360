@@ -1121,11 +1121,17 @@ function commitFranjaFromModal() {
         rebuildFranjaCurvaGroup(gid);
         weldFranjaCurvaToNeighbors(gid);
         ensureStitchedDivisorias();
+        if (window.isArquitecto2Active && window.arq3Ferrari && typeof window.arq3Ferrari.importFranjaLotes === 'function') {
+            window.arq3Ferrari.importFranjaLotes(gid);
+        }
         refreshAllHotspots(); saveToLocal(); flashScreenSuccess();
         return;
     }
 
-    finalizeNewFranja(finalBuilt.topPts, finalBuilt.botPts, N, pending.snap, splits);
+    const newGid = finalizeNewFranja(finalBuilt.topPts, finalBuilt.botPts, N, pending.snap, splits);
+    if (window.isArquitecto2Active && window.arq3Ferrari && typeof window.arq3Ferrari.importFranjaLotes === 'function' && newGid) {
+        window.arq3Ferrari.importFranjaLotes(newGid);
+    }
     refreshAllHotspots(); saveToLocal(); flashScreenSuccess();
 }
 

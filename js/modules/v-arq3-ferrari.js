@@ -238,8 +238,14 @@ window.arquitecto3D = {
             // Si estamos en modo Pin V2, insertar pin
             if (this.currentTool === 'smart-pin') {
                 e.stopPropagation(); // Prevenir panning
+                
+                // Actualizar this.mouse antes del raycast
+                const rect = container.getBoundingClientRect();
+                this.mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+                this.mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+                
                 this.raycaster.setFromCamera(this.mouse, window.visor360.getThreeCamera());
-                const groundIntersection = this.raycaster.intersectObject(this.holographicSphere)[0];
+                const groundIntersection = this.raycaster.intersectObject(window.visor360.getThreeMesh())[0];
                 if (groundIntersection) {
                     const pt = groundIntersection.point;
                     const pitch = Math.asin(pt.y / pt.length()) * 180 / Math.PI;
@@ -668,6 +674,43 @@ window.arquitecto3D = {
             });
             this.tempLabels = [];
         }
+    },
+
+    importFranjaLotes: function(gid) {
+        if (!window.getFranjaChildLines) return;
+        const franjaLotes = window.getFranjaChildLines(gid);
+        
+        franjaLotes.forEach((lote, index) => {
+            const loteId = 'FRANJA_3D_' + Date.now() + '_' + index;
+            // Convertir de pitch/yaw a vectores 3D nativos
+            const v3Pts = lote.puntos.map(py => window.visor360.getVectorFromPitchYaw(py[0], py[1]));
+            
+            const newLote = {
+                id: loteId,
+                tipo: 'lote',
+                points: v3Pts,
+                color: window.arq3Colors[Math.floor(Math.random() * window.arq3Colors.length)],
+                animStartTime: Date.now(),
+                franjaGrupo: gid
+            };
+
+            this.lotes.push(newLote);
+            this.buildLoteMeshes(newLote);
+            
+            if (newLote.lineMesh) this.group.add(newLote.lineMesh);
+            if (newLote.fillMesh) this.group.add(newLote.fillMesh);
+            if (newLote.markerMeshes) {
+                newLote.markerMeshes.forEach(m => this.vertexMarkerGroup.add(m));
+            }
+        });
+
+        // Limpiar el rastro 2D para evitar duplicados visuales
+        if (window.allDrawnLines) {
+            window.allDrawnLines = window.allDrawnLines.filter(l => l.franjaGrupo !== gid);
+        }
+        
+        // Autocostura
+        window.updateCosturaEdges();
     },
 
     buildLoteMeshes: function(lote) {

@@ -802,7 +802,7 @@ function arq2_ensurePanelExtras() {
 // ARQUITECTO 2.0 — Sistema de Pines (calco del Modo Pines Ctrl+P)
 // =====================================================================
 
-let arq2PinSubTool = null; // 'horizonte' | 'ruta' | 'vista360' | 'casa360' | null
+window.arq2PinSubTool = null; // 'horizonte' | 'ruta' | 'vista360' | 'casa360' | null
 
 /**
  * Activa/desactiva un subtipo de pin en el panel Arq2.
@@ -810,20 +810,20 @@ let arq2PinSubTool = null; // 'horizonte' | 'ruta' | 'vista360' | 'casa360' | nu
  * Gestiona ghost-mode para polígonos SVG.
  */
 function arq2_setPinSubTool(tipo) {
-    if (arq2PinSubTool === tipo) {
+    if (window.arq2PinSubTool === tipo) {
         // Toggle off
-        arq2PinSubTool = null;
+        window.arq2PinSubTool = null;
     } else {
-        arq2PinSubTool = tipo;
+        window.arq2PinSubTool = tipo;
     }
 
     // Ghost Mode: desactiva pointer-events en polígonos cuando hay un pin activo
-    const pinActivo = arq2PinSubTool !== null;
+    const pinActivo = window.arq2PinSubTool !== null;
     document.body.classList.toggle('arq2-pin-active', pinActivo);
 
     // Marcar visualmente el botón activo
     document.querySelectorAll('.arq2-pin-btn').forEach(b => {
-        b.classList.toggle('active', b.dataset.arq2Pin === arq2PinSubTool);
+        b.classList.toggle('active', b.dataset.arq2Pin === window.arq2PinSubTool);
     });
 
     // Desactivar Línea Pines si estaba activa
@@ -868,7 +868,7 @@ function arq2_bindPinRowButtons() {
                 btnLP.classList.add('active');
             }
             // Cancelar pin subtool si había uno activo
-            if (arq2PinSubTool) arq2_setPinSubTool(null);
+            if (window.arq2PinSubTool) arq2_setPinSubTool(null);
         });
     }
 
