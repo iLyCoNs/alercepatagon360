@@ -294,45 +294,48 @@ function saveToLocal() { localStorage.setItem(FRESIA_CFG.autosaveKey, JSON.strin
 function loadFromLocal() { const savedData = localStorage.getItem(FRESIA_CFG.autosaveKey); if (savedData) { try { const parsed = JSON.parse(savedData); if((parsed.lotes && parsed.lotes.length > 0) || (parsed.trazos && parsed.trazos.length > 0)) { ConfigProyecto = parsed.configProyecto || ConfigProyecto; OrigenDrone = parsed.origen || OrigenDrone; NorteOffset = parsed.norte || 0; BaseDatosLotes = parsed.lotes || BaseDatosLotes; PuntosHorizonte = parsed.horizontes || PuntosHorizonte; allDrawnLines = parsed.trazos || allDrawnLines; } } catch(e) {} } }
 async function fetchValorUFOnline() { try { const response = await fetch('https://mindicador.cl/api/uf', { cache: 'no-store' }); if (response.ok) { const data = await response.json(); if(data && data.serie && data.serie.length > 0) { UF_Online = data.serie[0].valor; return; } } } catch (error) {} }
 function arq2_migrateCallesGeometry() {
-    // Rebuild geometry for legacy 2D streets (tipo 'calle') to make them true 3D
-    // and regenerate ALL calle-curva-arq2 with the new spherical algorithm.
-    for (const line of allDrawnLines) {
-        if (line.tipo === 'calle') {
-            line.tipo = 'calle-curva-arq2';
-            line.ejeOriginal = [...line.puntos];
-            const geo = arq2_buildCalleCurvaGeometry(line.ejeOriginal, line.ancho || 8, line.calleAlpha || 0, false);
-            if (geo) {
-                line.left = geo.left;
-                line.right = geo.right;
-                line.ejeIsClosed = geo.ejeIsClosed;
-                line.fillPoly = geo.fillPoly;
-                line.puntosSuavizados = geo.puntosSuavizados;
-                line.calleCurvaAlpha = line.calleAlpha || 0;
-            }
-        }
-        else if (line.tipo === 'calle-curva-arq2' && line.ejeOriginal) {
-            // Siempre regenerar con el nuevo algoritmo esférico para eliminar
-            // cualquier geometría calculada con el método de píxeles/cámara.
-            const hasValidGeo = (line.left && line.left.length > 0 && line.right && line.right.length > 0 && (line.fillPoly || line.puntos));
-            if (!hasValidGeo) {
-                const geo = arq2_buildCalleCurvaGeometry(
-                    line.ejeOriginal,
-                    line.calleCurvaAncho || line.ancho || 8,
-                    line.calleCurvaAlpha || line.calleAlpha || 0,
-                    line.calleRetorno || false
-                );
-                if (geo) {
-                    line.left = geo.left;
-                    line.right = geo.right;
-                    line.ejeIsClosed = geo.ejeIsClosed;
-                    line.fillPoly = geo.fillPoly;
-                    line.puntosSuavizados = geo.puntosSuavizados;
-                }
-            } else {
-                if (!line.fillPoly && line.puntos) line.fillPoly = line.puntos;
-            }
-        }
+  for (const line of allDrawnLines) {
+    if (line.tipo === 'calle') {
+      line.tipo = 'calle-curva-arq2';
     }
+
+    if (line.tipo !== 'calle-curva-arq2') continue;
+
+    const hasStableGeometry =
+      Array.isArray(line.left) && line.left.length > 1 &&
+      Array.isArray(line.right) && line.right.length > 1 &&
+      Array.isArray(line.fillPoly) && line.fillPoly.length > 2 &&
+      typeof line.ejeIsClosed === 'boolean';
+
+    if (hasStableGeometry) {
+      if (!Array.isArray(line.puntos) || !line.puntos.length) {
+        line.puntos = line.fillPoly.map(p => [...p]);
+      }
+      continue;
+    }
+
+    if (!Array.isArray(line.ejeOriginal) || line.ejeOriginal.length < 2) continue;
+
+    const geo = arq2_buildCalleCurvaGeometry(
+      line.ejeOriginal,
+      line.calleCurvaAncho || line.ancho || 8,
+      line.calleCurvaAlpha || line.calleAlpha || 0.55,
+      !!line.calleRetorno
+    );
+
+    if (!geo) continue;
+
+    line.geometryVersion = 2;
+    line.puntosSuavizados = geo.puntosSuavizados.map(p => [...p]);
+    line.left = geo.left.map(p => [...p]);
+    line.right = geo.right.map(p => [...p]);
+    line.fillPoly = geo.fillPoly.map(p => [...p]);
+    line.puntos = geo.fillPoly.map(p => [...p]);
+    line.ejeIsClosed = !!geo.ejeIsClosed;
+    line.calleCurvaAncho = geo.ancho;
+    line.ancho = geo.ancho;
+    line.halfDeg = geo.halfDeg;
+  }
 }
 async function fetchMasterData() { try { const response = await fetch(FRESIA_CFG.datosJson + '?v=' + new Date().getTime()); if(response.ok) { const data = await response.json(); ConfigProyecto = data.configProyecto || ConfigProyecto; OrigenDrone = data.origen || null; NorteOffset = data.norte || 0; BaseDatosLotes = data.lotes || []; PuntosHorizonte = data.horizontes || []; allDrawnLines = data.trazos || []; } else { loadFromLocal(); } } catch(e) { loadFromLocal(); } applyProjectConfig(); await syncRutasDesdeOrigen(); }
 

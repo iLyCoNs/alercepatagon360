@@ -1,27 +1,6 @@
 // ==========================================
-// MOTOR ARQUITECTO 2.0 (ExtraÃƒÂ­do de viewer.js)
+// MOTOR ARQUITECTO 2.0 (Extraído de viewer.js)
 // ==========================================
-
-function arq2_migrateCallesGeometry() {
-    // Rebuild geometry for closed-loop streets that predate the ejeIsClosed flag
-    // so they render as rings instead of filled polygons.
-    for (const line of allDrawnLines) {
-        if (line.tipo !== 'calle-curva-arq2') continue;
-        if (!line.ejeOriginal) continue;
-        const closed = arq2_isCalleEjeClosed(line.ejeOriginal);
-        if (closed && !line.ejeIsClosed) {
-            // Rebuild using new closed geometry
-            const geo = arq2_buildCalleCurvaGeometry(line.ejeOriginal, line.ancho || arq2CalleCurvaAncho, line.calleCurvaAlpha, false);
-            if (geo) {
-                line.left = geo.left;
-                line.right = geo.right;
-                line.ejeIsClosed = true;
-                line.fillPoly = geo.fillPoly;
-                line.puntosSuavizados = geo.puntosSuavizados;
-            }
-        }
-    }
-}
 
 function arq2_isValidPYPoint(pt) {
     return Array.isArray(pt) && pt.length >= 2 && isFinite(pt[0]) && isFinite(pt[1]) && !isNaN(pt[0]) && !isNaN(pt[1]);
@@ -1160,14 +1139,42 @@ function arq2_projectCalleCurvaPaths(lineData, getCamFn, cx, cySc, f) {
     return { dFill, dLeft, dRight, capStart, capEnd, calleCurvaAlpha: lineData.calleCurvaAlpha };
 }
 
+function arq2_getCommittedCalleCurvaAxis() {
+    let eje = arq2LinePoints.map(p => [...p]);
+    const proj = getPanoramaScreenProjector();
+
+    if (window.lastMouseX !== undefined && visor360 && proj) {
+        const mx = window.lastMouseX - DOMCache.viewport.left;
+        const my = window.lastMouseY - DOMCache.viewport.top;
+        const py = proj.toPY(mx, my);
+
+        if (py) {
+            const last = eje[eje.length - 1];
+            const cand = [parseFloat(py[0].toFixed(3)), parseFloat(py[1].toFixed(3))];
+            if (!last || Math.hypot(cand[0] - last[0], cand[1] - last[1]) > 1e-3) {
+                eje.push(cand);
+            }
+        }
+    }
+
+    return arq2_sanitizePolylinePoints(eje);
+}
+
 function arq2_finishCalleCurva() {
-    if (arq2LinePoints.length < 2) { 
+    const eje = arq2_getCommittedCalleCurvaAxis();
+    if (eje.length < 2) { 
         alert('Coloca al menos 2 puntos en el eje central de la calle.'); 
         return; 
     }
     
-    const preview = arq2_getCalleCurvaPreviewLineData();
-    if (!preview || !preview.left?.length || !preview.right?.length || !preview.puntos?.length) {
+    const geo = arq2_buildCalleCurvaGeometry(
+        eje,
+        arq2CalleCurvaAncho,
+        draftCalleCurvaAlpha,
+        arq2CalleRetorno
+    );
+
+    if (!geo) {
         alert('No se pudo generar la calle curva. Ajusta la vista e intenta de nuevo.');
         return;
     }
@@ -1176,14 +1183,19 @@ function arq2_finishCalleCurva() {
     allDrawnLines.push({
         id,
         tipo: 'calle-curva-arq2',
-        ejeOriginal: (preview.ejeOriginal || []).map(p => [...p]),
-        puntosSuavizados: (preview.puntosSuavizados || []).map(p => [...p]),
-        ancho: preview.ancho,
-        calleCurvaAlpha: preview.calleCurvaAlpha,
-        calleRetorno: !!preview.calleRetorno,
-        left: (preview.left || []).map(p => [...p]),
-        right: (preview.right || []).map(p => [...p]),
-        puntos: (preview.puntos || []).map(p => [...p])
+        geometryVersion: 2,
+        ejeOriginal: geo.ejeOriginal.map(p => [...p]),
+        puntosSuavizados: geo.puntosSuavizados.map(p => [...p]),
+        ancho: geo.ancho,
+        calleCurvaAncho: geo.ancho,
+        calleCurvaAlpha: geo.calleCurvaAlpha,
+        calleRetorno: !!geo.calleRetorno,
+        ejeIsClosed: !!geo.ejeIsClosed,
+        left: geo.left.map(p => [...p]),
+        right: geo.right.map(p => [...p]),
+        fillPoly: geo.fillPoly.map(p => [...p]),
+        puntos: geo.fillPoly.map(p => [...p]),
+        halfDeg: geo.halfDeg
     });
     
     arq2_clearDraft();
