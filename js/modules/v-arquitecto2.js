@@ -364,9 +364,9 @@ function arq2_saveVueloCinematico() {
     if (sem) { sem.className = 'arq2-semaphore arq2-sem-green'; sem.textContent = `🎬 Cinemática guardada con ${pts.length} puntos ✅`; setTimeout(() => { if (sem.textContent.startsWith('🎬')) { sem.className = 'arq2-semaphore arq2-sem-green'; sem.textContent = 'Trazo limpio'; }}, 3000); }
 
     // Guardar en nube usando la función real del sistema (tiene credenciales y lógica de merge)
-    if (typeof guardarProyecto === 'function') {
+    if (typeof GlobalCloudSave === 'function') {
         // Simulamos click silencioso al botón de guardar (la función ya tiene todo)
-        setTimeout(() => guardarProyecto(), 100);
+        setTimeout(() => GlobalCloudSave(), 100);
     }
 
     arq2_setTool('lote-libre');
@@ -1329,6 +1329,8 @@ function arq2_ensurePanelExtras() {
             syncSVGElements();
             updateSVGPaths();
         });
+
+        if (typeof arq2_bindPinRowButtons === 'function') arq2_bindPinRowButtons();
         
         const cb = document.getElementById('arq2-calle-retorno');
         if (cb) {

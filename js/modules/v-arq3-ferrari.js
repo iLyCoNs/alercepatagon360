@@ -251,20 +251,13 @@ window.arquitecto3D = {
                         window.arq2VueloPoints.forEach((pt, idx) => {
                             const marker = this._cinematicaMarkers[idx];
                             if (!marker || !pt) return;
-                            const v3 = window.visor360.getVectorFromPitchYaw?.(pt.pitch, pt.yaw);
-                            if (!v3) return;
-                            // Proyectar a NDC
-                            const camera = window.visor360.getThreeCamera?.();
-                            if (!camera) return;
-                            const projected = v3.clone().normalize();
-                            const ndc = projected.project(camera);
-                            if (ndc.z > 1) { marker.style.display = 'none'; return; }
-                            const rect2 = renderer?.domElement?.getBoundingClientRect?.() || { left: 0, top: 0, width: window.innerWidth, height: window.innerHeight };
-                            const sx = (ndc.x * 0.5 + 0.5) * rect2.width;
-                            const sy = (-ndc.y * 0.5 + 0.5) * rect2.height;
-                            marker.style.display = 'flex';
-                            marker.style.left = (sx - 20) + 'px';
-                            marker.style.top = (sy - 48) + 'px';
+                            if (typeof window.visor360.projectToScreen === 'function') {
+                                const p3 = window.visor360.projectToScreen(pt.pitch, pt.yaw);
+                                if (!p3 || p3.z < 0) { marker.style.display = 'none'; return; }
+                                marker.style.display = 'flex';
+                                marker.style.left = (p3.x - 20) + 'px';
+                                marker.style.top = (p3.y - 48) + 'px';
+                            }
                         });
                     }
                 }

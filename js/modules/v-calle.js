@@ -947,7 +947,31 @@ function arq2_bindPinRowButtons() {
 
                 // Guardar: local + nube con la función real
                 if (typeof saveToLocal === 'function') saveToLocal();
-                if (typeof guardarProyecto === 'function') setTimeout(() => guardarProyecto(), 200);
+                if (typeof GlobalCloudSave === 'function') setTimeout(() => GlobalCloudSave(), 200);
+
+                // === ANIMACIÓN DE FEEDBACK AL BOTÓN (como Norte) ===
+                const originalHtml = btnDrone.innerHTML;
+                const originalStyle = { background: btnDrone.style.background, color: btnDrone.style.color, borderColor: btnDrone.style.borderColor };
+                btnDrone.innerHTML = '✅ Drone Fijado!';
+                btnDrone.style.background = 'rgba(52,211,153,0.35)';
+                btnDrone.style.color = '#34d399';
+                btnDrone.style.borderColor = '#34d399';
+                btnDrone.classList.add('arq2-btn-pulse');
+                
+                // Micro-animación en la cámara para sensación de captura
+                if (typeof window.visor360?.getHfov === 'function' && typeof window.visor360?.setHfov === 'function') {
+                    const currentHfov = window.visor360.getHfov();
+                    window.visor360.setHfov(currentHfov - 5, 150);
+                    setTimeout(() => window.visor360.setHfov(currentHfov, 300), 150);
+                }
+
+                setTimeout(() => {
+                    btnDrone.classList.remove('arq2-btn-pulse');
+                    btnDrone.style.background = originalStyle.background;
+                    btnDrone.style.color = originalStyle.color;
+                    btnDrone.style.borderColor = originalStyle.borderColor;
+                    btnDrone.innerHTML = originalHtml;
+                }, 2500);
 
                 // Semáforo éxito
                 if (semDrone) { semDrone.className = 'arq2-semaphore arq2-sem-green'; semDrone.textContent = `🚁 Drone fijado${latVal ? ` (${latVal.toFixed(4)}, ${lngVal.toFixed(4)})` : ' (sin GPS)'}. Guardando...`; setTimeout(() => { if (semDrone.textContent.startsWith('🚁')) { semDrone.className = 'arq2-semaphore arq2-sem-green'; semDrone.textContent = 'Trazo limpio'; } }, 4000); }
@@ -1005,7 +1029,7 @@ function arq2_bindPinRowButtons() {
 
             // Guardar en local y en la NUBE (async, sin bloquear UI)
             if (typeof saveToLocal === 'function') saveToLocal();
-            if (typeof guardarProyecto === 'function') setTimeout(() => guardarProyecto(), 200);
+            if (typeof GlobalCloudSave === 'function') setTimeout(() => GlobalCloudSave(), 200);
         });
     }
 

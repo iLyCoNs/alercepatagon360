@@ -88,15 +88,18 @@ function runPannellumIntroBootstrap() {
                     setTimeout(() => { revealLoteoOverlay(); }, 3000);
                 } else {
                     const customCinematic = (FRESIA_CFG.vista === 'suelo') ? ConfigProyecto.vueloCinematicoSuelo : ConfigProyecto.vueloCinematico;
-                    if (customCinematic && customCinematic.length === 3) {
-                        visor360.lookAt(customCinematic[0].pitch, customCinematic[0].yaw, customCinematic[0].hfov, 2500);
-                        setTimeout(() => {
-                            visor360.lookAt(customCinematic[1].pitch, customCinematic[1].yaw, customCinematic[1].hfov, 3000);
-                            setTimeout(() => {
-                                visor360.lookAt(customCinematic[2].pitch, customCinematic[2].yaw, customCinematic[2].hfov, 3500);
-                                setTimeout(() => { revealLoteoOverlay(); }, 3500);
-                            }, 3000);
-                        }, 2500);
+                    if (customCinematic && customCinematic.length >= 2) {
+                        const runCinematicSequence = (index) => {
+                            if (index >= customCinematic.length) {
+                                setTimeout(() => { revealLoteoOverlay(); }, 500);
+                                return;
+                            }
+                            const pt = customCinematic[index];
+                            const time = index === 0 ? 2500 : (index === 1 ? 3000 : 3500);
+                            visor360.lookAt(pt.pitch, pt.yaw, pt.hfov || 100, time);
+                            setTimeout(() => { runCinematicSequence(index + 1); }, time + 500);
+                        };
+                        runCinematicSequence(0);
                     } else if (FRESIA_CFG.vista === 'suelo') {
                         // --- CINEMÁTICA VISTA SUELO (3 Puntos -> TinyHouse) ---
                         // Punto 1: Paneamos hacia un costado del Norte
