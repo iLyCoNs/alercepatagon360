@@ -857,31 +857,18 @@ function arq2_bindPinRowButtons() {
     if (btnDrone && !btnDrone.dataset.arq2Bound) {
         btnDrone.dataset.arq2Bound = '1';
         btnDrone.addEventListener('click', () => {
-            // Verificar si ya existe un drone guardado para mostrar sus datos
-            const droneExistente = window.PuntosHorizonte ? window.PuntosHorizonte.find(p => p.tipo === 'drone') : null;
-            const infoActual = droneExistente
-                ? `\nDrone actual: ${droneExistente.titulo || 'Origen Drone'} (pitch:${droneExistente.pitch?.toFixed(1)}, yaw:${droneExistente.yaw?.toFixed(1)})\nCoords: ${droneExistente.lat || '?'}, ${droneExistente.lng || '?'}`
-                : '';
-
-            const accion = confirm(
-                `📌 PIN ORIGEN DRONE${infoActual}\n\n` +
-                `[OK] → Hacer click en la escena para fijar nuevo pin visual\n` +
-                `[Cancelar] → Salir`
-            );
-            if (!accion) return;
-
-            // === FEEDBACK INMEDIATO — animación pulse en el botón ===
+            // Feedback inmediato sin confirm() — animación pulse
             btnDrone.classList.add('arq2-btn-pulse-drone');
-            setTimeout(() => btnDrone.classList.remove('arq2-btn-pulse-drone'), 2000);
+            setTimeout(() => btnDrone.classList.remove('arq2-btn-pulse-drone'), 1800);
 
             // Toast en semáforo
             const semDrone = document.getElementById('arq2-semaphore');
             if (semDrone) {
                 semDrone.className = 'arq2-semaphore arq2-sem-yellow';
-                semDrone.textContent = '🚁 Haz clic en la escena para fijar el pin Drone...';
+                semDrone.textContent = '🚁 Haz clic en la escena 3D para fijar el pin Drone...';
             }
 
-            // Activar modo de escucha de un solo click en el panorama
+            // Cambiar aspecto del botón
             btnDrone.style.background = 'rgba(245,158,11,0.35)';
             btnDrone.style.color = '#f59e0b';
             btnDrone.style.borderColor = '#f59e0b';
@@ -889,29 +876,30 @@ function arq2_bindPinRowButtons() {
             document.body.style.cursor = 'crosshair';
 
             const onClickScene = (evt) => {
-                // CRÍTICO: detener para que Ferrari/Pannellum no procesen este click como vértice
+                // Detener propagación para que Ferrari no dibuje vértice
                 evt.stopPropagation();
                 evt.preventDefault();
 
-                // Calcular pitch/yaw desde el click en la escena
+                // Calcular pitch/yaw — Ferrari raycaster como primario
                 let pitch = 0, yaw = 0;
-                if (window.visor360) {
-                    // Método primario: mouseEventToCoords (funciona con Pannellum y Mock API de Ferrari)
-                    if (typeof window.visor360.mouseEventToCoords === 'function') {
-                        const coords = window.visor360.mouseEventToCoords(evt);
-                        if (coords && !isNaN(coords[0])) { pitch = coords[0]; yaw = coords[1]; }
-                    }
-                    // Fallback Ferrari raycaster si no hubo coords
-                    if (!pitch && !yaw && window.arquitecto3D && typeof window.arquitecto3D.getVectorFromEvent === 'function') {
-                        const v3 = window.arquitecto3D.getVectorFromEvent(evt);
-                        if (v3 && typeof window.arquitecto3D.getPitchYawFromVector === 'function') {
-                            const py = window.arquitecto3D.getPitchYawFromVector(v3);
-                            if (py) { pitch = py[0]; yaw = py[1]; }
-                        }
+                if (window.arquitecto3D && typeof window.arquitecto3D.getVectorFromEvent === 'function') {
+                    const v3 = window.arquitecto3D.getVectorFromEvent(evt);
+                    if (v3) {
+                        const len = v3.length();
+                        const pitchRad = Math.asin(v3.y / len);
+                        const yawRad = Math.atan2(v3.x, -v3.z);
+                        // IMPORTANTE: Invertir para coincidir con el Mock API y Pannellum (pitch positivo = suelo)
+                        pitch = parseFloat((-pitchRad * 180 / Math.PI).toFixed(3));
+                        yaw = parseFloat((-yawRad * 180 / Math.PI).toFixed(3));
                     }
                 }
+                // Fallback mouseEventToCoords
+                if (!pitch && !yaw && window.visor360 && typeof window.visor360.mouseEventToCoords === 'function') {
+                    const coords = window.visor360.mouseEventToCoords(evt);
+                    if (coords && !isNaN(coords[0])) { pitch = coords[0]; yaw = coords[1]; }
+                }
 
-                // Restaurar cursor y botón — con feedback verde de confirmación
+                // Restaurar botón con feedback verde
                 document.body.style.cursor = '';
                 btnDrone.style.background = 'rgba(52,211,153,0.25)';
                 btnDrone.style.color = '#34d399';
@@ -927,10 +915,10 @@ function arq2_bindPinRowButtons() {
                 }, 2000);
                 document.getElementById('panorama-container')?.removeEventListener('click', onClickScene, { capture: true });
 
-                // Pedir coordenadas lat/lng
+                // Pedir coordenadas GPS (lat/lng)
                 const origen = window.OrigenDrone;
                 const valCoords = prompt(
-                    `🚁 Pin fijado en la escena (pitch: ${pitch.toFixed(1)}°, yaw: ${yaw.toFixed(1)}°)\n\nAhora ingresa las coordenadas GPS del drone (Lat, Lng):\nEj: -41.3245, -72.9832`,
+                    `🚁 Pin fijado (pitch: ${pitch.toFixed(1)}°, yaw: ${yaw.toFixed(1)}°)\n\nIngresa coordenadas GPS del drone (Lat, Lng):\nEj: -41.3245, -72.9832`,
                     origen ? `${origen.lat}, ${origen.lng}` : ''
                 );
 
@@ -941,7 +929,6 @@ function arq2_bindPinRowButtons() {
                     lngVal = parseFloat(parts[1].trim());
                     if (!isNaN(latVal) && !isNaN(lngVal)) {
                         window.OrigenDrone = { lat: latVal, lng: lngVal };
-                        // Actualizar iframe del mapa si existe
                         const iframe = document.getElementById('js-gmap-iframe');
                         if (iframe) iframe.src = `https://maps.google.com/maps?q=${latVal},${lngVal}&t=k&z=16&ie=UTF8&iwloc=&output=embed`;
                         const dirBtn = document.getElementById('js-directions-btn');
@@ -949,51 +936,31 @@ function arq2_bindPinRowButtons() {
                     }
                 }
 
-                // Eliminar drone anterior de PuntosHorizonte
-                if (window.PuntosHorizonte) {
-                    window.PuntosHorizonte = window.PuntosHorizonte.filter(p => p.tipo !== 'drone');
-                } else {
-                    window.PuntosHorizonte = [];
-                }
-
-                // Crear el pin de drone en PuntosHorizonte
-                const nuevoDrone = {
-                    id: 'drone_' + Date.now(),
-                    tipo: 'drone',
-                    pitch: pitch,
-                    yaw: yaw,
-                    titulo: 'ORIGEN DRONE',
-                    lat: latVal,
-                    lng: lngVal
-                };
-                window.PuntosHorizonte.push(nuevoDrone);
+                // Actualizar PuntosHorizonte
+                window.PuntosHorizonte = (window.PuntosHorizonte || []).filter(p => p.tipo !== 'drone');
+                window.PuntosHorizonte.push({ id: 'drone_' + Date.now(), tipo: 'drone', pitch, yaw, titulo: 'ORIGEN DRONE', lat: latVal, lng: lngVal });
 
                 // Reimportar pins en Ferrari
                 if (window.arquitecto3D && typeof window.arquitecto3D.importPuntosHorizonte === 'function') {
                     window.arquitecto3D.importPuntosHorizonte();
                 }
 
-                // Guardar en nube
-                if (typeof window.StateManager !== 'undefined' && typeof window.putGithubContents === 'function') {
-                    const payload = window.StateManager.buildSnapshot();
-                    const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(payload, null, 2))));
-                    window.putGithubContents(window.FRESIA_CFG?.datosJson?.split('/').pop() || 'datos.json', encoded)
-                        .then(() => alert('🚁 Pin Drone guardado en la nube.'))
-                        .catch(() => alert('⚠️ Pin fijado localmente, error al subir a la nube.'));
-                } else {
-                    if (typeof saveToLocal === 'function') saveToLocal();
-                    alert('🚁 Origen Drone fijado localmente.');
-                }
+                // Guardar: local + nube con la función real
+                if (typeof saveToLocal === 'function') saveToLocal();
+                if (typeof guardarProyecto === 'function') setTimeout(() => guardarProyecto(), 200);
 
-                // Recalcular rutas si existe la función
-                if (typeof syncRutasDesdeOrigen === 'function' && latVal) {
-                    syncRutasDesdeOrigen({ refreshAll: true });
-                }
+                // Semáforo éxito
+                if (semDrone) { semDrone.className = 'arq2-semaphore arq2-sem-green'; semDrone.textContent = `🚁 Drone fijado${latVal ? ` (${latVal.toFixed(4)}, ${lngVal.toFixed(4)})` : ' (sin GPS)'}. Guardando...`; setTimeout(() => { if (semDrone.textContent.startsWith('🚁')) { semDrone.className = 'arq2-semaphore arq2-sem-green'; semDrone.textContent = 'Trazo limpio'; } }, 4000); }
+
+                // Recalcular rutas
+                if (typeof syncRutasDesdeOrigen === 'function' && latVal) syncRutasDesdeOrigen({ refreshAll: true });
             };
 
             document.getElementById('panorama-container')?.addEventListener('click', onClickScene, { capture: true, once: true });
         });
     }
+
+
 
     // — Fijar Norte (Brújula) —
     const btnNorth = document.getElementById('arq2-btn-north');
@@ -1038,15 +1005,7 @@ function arq2_bindPinRowButtons() {
 
             // Guardar en local y en la NUBE (async, sin bloquear UI)
             if (typeof saveToLocal === 'function') saveToLocal();
-            if (typeof window.StateManager !== 'undefined' && typeof window.putGithubContents === 'function') {
-                const payload = window.StateManager.buildSnapshot();
-                const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(payload, null, 2))));
-                window.putGithubContents(window.FRESIA_CFG?.datosJson?.split('/').pop() || 'datos.json', encoded)
-                    .catch(() => {
-                        const s = document.getElementById('arq2-semaphore');
-                        if (s) { s.className = 'arq2-semaphore arq2-sem-red'; s.textContent = '⚠️ Error al guardar en nube (local OK)'; setTimeout(() => { s.className = 'arq2-semaphore arq2-sem-green'; s.textContent = 'Trazo limpio'; }, 3000); }
-                    });
-            }
+            if (typeof guardarProyecto === 'function') setTimeout(() => guardarProyecto(), 200);
         });
     }
 

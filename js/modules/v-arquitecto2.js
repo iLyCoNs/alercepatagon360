@@ -356,17 +356,17 @@ function arq2_saveVueloCinematico() {
         ConfigProyecto.vueloCinematico = pts;
     }
 
-    // Feedback inmediato en semáforo
+    // Guardar local primero
+    if (typeof saveToLocal === 'function') saveToLocal();
+
+    // Feedback inmediato
     const sem = document.getElementById('arq2-semaphore');
     if (sem) { sem.className = 'arq2-semaphore arq2-sem-green'; sem.textContent = `🎬 Cinemática guardada con ${pts.length} puntos ✅`; setTimeout(() => { if (sem.textContent.startsWith('🎬')) { sem.className = 'arq2-semaphore arq2-sem-green'; sem.textContent = 'Trazo limpio'; }}, 3000); }
 
-    // Guardar local + nube
-    if (typeof saveToLocal === 'function') saveToLocal();
-    if (typeof window.StateManager !== 'undefined' && typeof window.putGithubContents === 'function') {
-        const payload = window.StateManager.buildSnapshot();
-        const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(payload, null, 2))));
-        window.putGithubContents(window.FRESIA_CFG?.datosJson?.split('/').pop() || 'datos.json', encoded)
-            .catch(() => { const s = document.getElementById('arq2-semaphore'); if(s){ s.className='arq2-semaphore arq2-sem-red'; s.textContent='⚠️ Error al guardar en nube (local OK)'; setTimeout(()=>{ s.className='arq2-semaphore arq2-sem-green'; s.textContent='Trazo limpio'; },3000); }});
+    // Guardar en nube usando la función real del sistema (tiene credenciales y lógica de merge)
+    if (typeof guardarProyecto === 'function') {
+        // Simulamos click silencioso al botón de guardar (la función ya tiene todo)
+        setTimeout(() => guardarProyecto(), 100);
     }
 
     arq2_setTool('lote-libre');

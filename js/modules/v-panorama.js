@@ -27,7 +27,7 @@ function registerSVGSyncCallback() {
         if (!isSvgRenderAllowed() || !shouldUpdateSVGThisFrame()) return;
         updateSVGPaths();
         const compassDial = document.getElementById('js-compass');
-        if (compassDial) compassDial.style.transform = `rotate(${-(visor360.getYaw() - NorteOffset)}deg)`;
+        if (compassDial) compassDial.style.transform = `rotate(${visor360.getYaw() - NorteOffset}deg)`;
         if (!isTouchDevice() || TouchPerfPhase1.shouldUpdateOverlayDecorThisFrame()) TouchPerfPhase1.applyOverlayDecor();
     };
 }
