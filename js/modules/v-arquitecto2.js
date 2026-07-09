@@ -2790,6 +2790,30 @@ function arq2_setTool(tool) {
     arq2_updatePanelStep();
     if (tool === 'fila-variable' && isArquitecto2Active) arq2_startDemoAnimation(false);
     if (tool === 'fila-calle') arq2_setupFilaCalleListeners();
+
+    // === DESACTIVAR PIN SUBTOOL al cambiar de herramienta ===
+    // Evita que pines queden pegados al cambiar a Lote Libre, Calle, etc.
+    if (window.arq2PinSubTool !== null && typeof arq2_setPinSubTool === 'function') {
+        arq2_setPinSubTool(null);
+    }
+
+    // === FEEDBACK VISUAL CINEMÁTICA ===
+    if (tool === 'vuelo-cinematico') {
+        const sem = document.getElementById('arq2-semaphore');
+        if (sem) {
+            const prevClass = sem.className;
+            const prevText = sem.textContent;
+            sem.className = 'arq2-semaphore arq2-sem-yellow';
+            sem.textContent = '🎬 Modo Cinemática: define 3 puntos clave → Enter para guardar';
+            // Restaurar estado after 4 segundos
+            setTimeout(() => {
+                if (sem.textContent.startsWith('🎬')) {
+                    sem.className = prevClass;
+                    sem.textContent = prevText;
+                }
+            }, 4000);
+        }
+    }
 }
 
 function arq2_toggleArquitecto2(force) {

@@ -743,3 +743,11 @@ html.admin-mode-active .layer-manager-panel .btn-export, html.admin-mode-active 
 .drone-pin-coords{font-size:9px;color:rgba(255,255,255,0.55);font-family:monospace;letter-spacing:0.5px;}
 .drone-pin-maps-btn{display:inline-block;margin-top:4px;padding:4px 10px;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.4);border-radius:6px;color:#f59e0b;font-size:10px;font-weight:700;text-decoration:none;transition:background 0.2s;}
 .drone-pin-maps-btn:hover{background:rgba(245,158,11,0.3);}
+
+/* === ANIMACION PULSE BOTONES ARQUITECTO ===*/
+@keyframes arq2BtnPulse{0%{box-shadow:0 0 0 0 rgba(52,211,153,0.7);}70%{box-shadow:0 0 0 10px rgba(52,211,153,0);}100%{box-shadow:0 0 0 0 rgba(52,211,153,0);}}
+@keyframes arq2BtnPulseDrone{0%{box-shadow:0 0 0 0 rgba(245,158,11,0.7);}70%{box-shadow:0 0 0 10px rgba(245,158,11,0);}100%{box-shadow:0 0 0 0 rgba(245,158,11,0);}}
+.arq2-btn-pulse{animation:arq2BtnPulse 0.6s ease-out 3;}
+.arq2-btn-pulse-drone{animation:arq2BtnPulseDrone 0.6s ease-out 3;}
+/* Semaforo rojo para errores */
+.arq2-semaphore.arq2-sem-red{color:#f87171!important;border-color:rgba(248,113,113,0.3)!important;background:rgba(248,113,113,0.08)!important;}

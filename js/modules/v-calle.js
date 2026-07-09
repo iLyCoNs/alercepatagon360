@@ -870,9 +870,21 @@ function arq2_bindPinRowButtons() {
             );
             if (!accion) return;
 
+            // === FEEDBACK INMEDIATO — animación pulse en el botón ===
+            btnDrone.classList.add('arq2-btn-pulse-drone');
+            setTimeout(() => btnDrone.classList.remove('arq2-btn-pulse-drone'), 2000);
+
+            // Toast en semáforo
+            const semDrone = document.getElementById('arq2-semaphore');
+            if (semDrone) {
+                semDrone.className = 'arq2-semaphore arq2-sem-yellow';
+                semDrone.textContent = '🚁 Haz clic en la escena para fijar el pin Drone...';
+            }
+
             // Activar modo de escucha de un solo click en el panorama
-            btnDrone.style.background = '#f59e0b';
-            btnDrone.style.color = '#000';
+            btnDrone.style.background = 'rgba(245,158,11,0.35)';
+            btnDrone.style.color = '#f59e0b';
+            btnDrone.style.borderColor = '#f59e0b';
             btnDrone.textContent = '🚁 Clic en la escena...';
             document.body.style.cursor = 'crosshair';
 
@@ -897,11 +909,20 @@ function arq2_bindPinRowButtons() {
                     }
                 }
 
-                // Restaurar cursor y botón
+                // Restaurar cursor y botón — con feedback verde de confirmación
                 document.body.style.cursor = '';
-                btnDrone.style.background = '';
-                btnDrone.style.color = '#f59e0b';
-                btnDrone.textContent = '📌 Drone';
+                btnDrone.style.background = 'rgba(52,211,153,0.25)';
+                btnDrone.style.color = '#34d399';
+                btnDrone.style.borderColor = '#34d399';
+                btnDrone.textContent = '✅ Pin fijado!';
+                btnDrone.classList.add('arq2-btn-pulse');
+                setTimeout(() => {
+                    btnDrone.style.background = '';
+                    btnDrone.style.color = '#f59e0b';
+                    btnDrone.style.borderColor = '';
+                    btnDrone.textContent = '📌 Drone';
+                    btnDrone.classList.remove('arq2-btn-pulse');
+                }, 2000);
                 document.getElementById('panorama-container')?.removeEventListener('click', onClickScene, { capture: true });
 
                 // Pedir coordenadas lat/lng
@@ -980,21 +1001,49 @@ function arq2_bindPinRowButtons() {
             if (!window.visor360) return;
             window.NorteOffset = window.visor360.getYaw();
 
-            // Actualizar brújula inmediatamente
+            // === FEEDBACK INMEDIATO — antes de cualquier operación async ===
+            const originalText = btnNorth.textContent;
+            const originalStyle = { background: btnNorth.style.background, color: btnNorth.style.color, borderColor: btnNorth.style.borderColor };
+            btnNorth.textContent = '✅ Norte fijado!';
+            btnNorth.style.background = 'rgba(52,211,153,0.35)';
+            btnNorth.style.color = '#34d399';
+            btnNorth.style.borderColor = '#34d399';
+            btnNorth.classList.add('arq2-btn-pulse');
+            setTimeout(() => {
+                btnNorth.textContent = originalText;
+                btnNorth.style.background = originalStyle.background;
+                btnNorth.style.color = originalStyle.color;
+                btnNorth.style.borderColor = originalStyle.borderColor;
+                btnNorth.classList.remove('arq2-btn-pulse');
+            }, 2000);
+
+            // Actualizar brújula inmediatamente (se ve girar a 0 = Norte)
             const compassDial = document.getElementById('js-compass');
-            if (compassDial) compassDial.style.transform = `rotate(0deg)`;
+            if (compassDial) {
+                compassDial.style.transition = 'transform 0.5s cubic-bezier(0.34,1.56,0.64,1)';
+                compassDial.style.transform = 'rotate(0deg)';
+                setTimeout(() => { compassDial.style.transition = ''; }, 600);
+            }
 
-            // Guardar en local y en la NUBE
+            // Toast en semáforo del panel (no bloquea)
+            const sem = document.getElementById('arq2-semaphore');
+            if (sem) {
+                const prevClass = sem.className, prevText = sem.textContent;
+                sem.className = 'arq2-semaphore arq2-sem-green';
+                sem.textContent = `🧭 Norte magnético fijado en ${window.NorteOffset.toFixed(1)}°`;
+                setTimeout(() => { if (sem.textContent.startsWith('🧭')) { sem.className = prevClass; sem.textContent = prevText; } }, 3000);
+            }
+
+            // Guardar en local y en la NUBE (async, sin bloquear UI)
             if (typeof saveToLocal === 'function') saveToLocal();
-
             if (typeof window.StateManager !== 'undefined' && typeof window.putGithubContents === 'function') {
                 const payload = window.StateManager.buildSnapshot();
                 const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(payload, null, 2))));
                 window.putGithubContents(window.FRESIA_CFG?.datosJson?.split('/').pop() || 'datos.json', encoded)
-                    .then(() => alert(`🧭 Brújula calibrada y guardada en la nube.\nNorte magnético = ${window.NorteOffset.toFixed(1)}°`))
-                    .catch(() => alert(`🧭 Brújula calibrada (Norte = ${window.NorteOffset.toFixed(1)}°)\n⚠️ Error al guardar en nube, guardado solo en local.`));
-            } else {
-                alert(`🧭 Brújula calibrada: Norte magnético = ${window.NorteOffset.toFixed(1)}°`);
+                    .catch(() => {
+                        const s = document.getElementById('arq2-semaphore');
+                        if (s) { s.className = 'arq2-semaphore arq2-sem-red'; s.textContent = '⚠️ Error al guardar en nube (local OK)'; setTimeout(() => { s.className = 'arq2-semaphore arq2-sem-green'; s.textContent = 'Trazo limpio'; }, 3000); }
+                    });
             }
         });
     }
