@@ -2810,6 +2810,7 @@ function arq2_setTool(tool) {
     window.arq2PinSubTool = null;
     document.querySelectorAll('.arq2-pin-btn').forEach(b => b.classList.remove('active'));
     document.body.classList.remove('arq2-pin-active');
+    if (window.PinEngine) window.PinEngine.deactivate();
     // Limpiar puntos de polígono para evitar que el primer click tras cambio de tool agregue vértices fantasma
     arq2LinePoints = [];
 
@@ -2860,6 +2861,7 @@ function arq2_toggleArquitecto2(force) {
         arq2_stopDemoAnimation();
         closeFranjaLotesModal();
         document.body.classList.remove('eraser-mode-active');
+        if (window.PinEngine) window.PinEngine.deactivate();
         refreshAllHotspots(true);
     } else {
         arq2_ensureFeedbackLayer();
