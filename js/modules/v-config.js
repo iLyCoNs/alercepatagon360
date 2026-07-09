@@ -13,6 +13,7 @@ const FRESIA_CFG = Object.assign({
     payloadIncludeVista: true,
     mergeRemoteSueloFields: true
 }, window.FRESIA_VIEWER_CONFIG || {});
+window.FRESIA_CFG = FRESIA_CFG;
 const PANORAMA_FILE = FRESIA_CFG.panorama;
 (function primeAdminEditorMode() {
     if (!/[?&]admin=true(?:&|$)/.test(window.location.search)) return;
