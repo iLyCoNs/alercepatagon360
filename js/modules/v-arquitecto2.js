@@ -579,24 +579,112 @@ function arq2_refreshVertexMarkers(ctx) {
     const { getCam, cx, cy_screen, f } = ctx;
     const points = arq2_getActiveDrawPoints();
     vertsG.innerHTML = '';
-    points.forEach((pt, idx) => {
-        const c = getCam(pt[0], pt[1]);
-        if (c.z <= 0.0001) return;
-        const x = cx + (c.x / c.z) * f, y = cy_screen - (c.y / c.z) * f;
-        const circle = document.createElementNS(ns, 'circle');
-        circle.setAttribute('cx', x);
-        circle.setAttribute('cy', y);
-        if (idx === points.length - 1) {
-            circle.setAttribute('r', '6');
-            circle.classList.add('arq2-vertex-pulse');
-        } else {
-            circle.setAttribute('r', '4');
-            circle.setAttribute('fill', '#10b981');
-            circle.setAttribute('stroke', '#ffffff');
-            circle.setAttribute('stroke-width', '1');
+    
+    if (arq2Tool === 'vuelo-cinematico') {
+        // Render connecting lines for cinematic
+        if (points.length > 1) {
+            const path = document.createElementNS(ns, 'path');
+            let d = '';
+            points.forEach((pt, idx) => {
+                const c = getCam(pt[0], pt[1]);
+                if (c.z > 0.0001) {
+                    const x = cx + (c.x / c.z) * f, y = cy_screen - (c.y / c.z) * f;
+                    d += (idx === 0 ? `M ${x},${y}` : ` L ${x},${y}`);
+                }
+            });
+            if (d) {
+                path.setAttribute('d', d);
+                path.setAttribute('stroke', '#a855f7'); // Purple for cinematic
+                path.setAttribute('stroke-width', '2');
+                path.setAttribute('stroke-dasharray', '4 4');
+                path.setAttribute('fill', 'none');
+                vertsG.appendChild(path);
+            }
         }
-        vertsG.appendChild(circle);
-    });
+        
+        // Render numbered pins
+        points.forEach((pt, idx) => {
+            const c = getCam(pt[0], pt[1]);
+            if (c.z <= 0.0001) return;
+            const x = cx + (c.x / c.z) * f, y = cy_screen - (c.y / c.z) * f;
+            
+            const g = document.createElementNS(ns, 'g');
+            g.setAttribute('transform', `translate(${x}, ${y})`);
+            
+            const circle = document.createElementNS(ns, 'circle');
+            circle.setAttribute('r', idx === points.length - 1 ? '12' : '10');
+            circle.setAttribute('fill', '#a855f7');
+            circle.setAttribute('stroke', '#ffffff');
+            circle.setAttribute('stroke-width', '2');
+            if (idx === points.length - 1) circle.classList.add('arq2-vertex-pulse');
+            
+            const text = document.createElementNS(ns, 'text');
+            text.setAttribute('text-anchor', 'middle');
+            text.setAttribute('dominant-baseline', 'central');
+            text.setAttribute('fill', '#ffffff');
+            text.setAttribute('font-size', '10px');
+            text.setAttribute('font-weight', 'bold');
+            text.setAttribute('font-family', 'Inter, sans-serif');
+            text.textContent = `P${idx + 1}`;
+            
+            g.appendChild(circle);
+            g.appendChild(text);
+            vertsG.appendChild(g);
+        });
+        
+        // Render reticle on hover ghost point
+        if (window.arq2VueloGhost) {
+            const cGhost = getCam(window.arq2VueloGhost[0], window.arq2VueloGhost[1]);
+            if (cGhost.z > 0.0001) {
+                const gx = cx + (cGhost.x / cGhost.z) * f, gy = cy_screen - (cGhost.y / cGhost.z) * f;
+                const reticle = document.createElementNS(ns, 'g');
+                reticle.setAttribute('transform', `translate(${gx}, ${gy})`);
+                
+                const rCircle = document.createElementNS(ns, 'circle');
+                rCircle.setAttribute('r', '15');
+                rCircle.setAttribute('fill', 'none');
+                rCircle.setAttribute('stroke', 'rgba(168, 85, 247, 0.7)');
+                rCircle.setAttribute('stroke-width', '2');
+                
+                const cross1 = document.createElementNS(ns, 'line');
+                cross1.setAttribute('x1', '-20'); cross1.setAttribute('y1', '0');
+                cross1.setAttribute('x2', '20'); cross1.setAttribute('y2', '0');
+                cross1.setAttribute('stroke', 'rgba(168, 85, 247, 0.7)');
+                cross1.setAttribute('stroke-width', '2');
+                
+                const cross2 = document.createElementNS(ns, 'line');
+                cross2.setAttribute('x1', '0'); cross2.setAttribute('y1', '-20');
+                cross2.setAttribute('x2', '0'); cross2.setAttribute('y2', '20');
+                cross2.setAttribute('stroke', 'rgba(168, 85, 247, 0.7)');
+                cross2.setAttribute('stroke-width', '2');
+                
+                reticle.appendChild(rCircle);
+                reticle.appendChild(cross1);
+                reticle.appendChild(cross2);
+                vertsG.appendChild(reticle);
+            }
+        }
+    } else {
+        // Original basic circles for other tools
+        points.forEach((pt, idx) => {
+            const c = getCam(pt[0], pt[1]);
+            if (c.z <= 0.0001) return;
+            const x = cx + (c.x / c.z) * f, y = cy_screen - (c.y / c.z) * f;
+            const circle = document.createElementNS(ns, 'circle');
+            circle.setAttribute('cx', x);
+            circle.setAttribute('cy', y);
+            if (idx === points.length - 1) {
+                circle.setAttribute('r', '6');
+                circle.classList.add('arq2-vertex-pulse');
+            } else {
+                circle.setAttribute('r', '4');
+                circle.setAttribute('fill', '#10b981');
+                circle.setAttribute('stroke', '#ffffff');
+                circle.setAttribute('stroke-width', '1');
+            }
+            vertsG.appendChild(circle);
+        });
+    }
 
     // === VÃƒâ€°RTICES IMAGINARIOS: Miter corner guides for calle-curva ===
     // Show left/right road-edge diamonds at each placed axis vertex
