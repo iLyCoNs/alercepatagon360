@@ -889,23 +889,25 @@ function arq2_bindPinRowButtons() {
             document.body.style.cursor = 'crosshair';
 
             const onClickScene = (evt) => {
+                // CRÍTICO: detener para que Ferrari/Pannellum no procesen este click como vértice
+                evt.stopPropagation();
+                evt.preventDefault();
+
                 // Calcular pitch/yaw desde el click en la escena
                 let pitch = 0, yaw = 0;
                 if (window.visor360) {
-                    if (typeof window.visor360.getVectorFromEvent === 'function') {
-                        // Motor Ferrari: usar raycaster
-                        if (window.arquitecto3D) {
-                            const v3 = window.arquitecto3D.getVectorFromEvent(evt);
-                            if (v3) {
-                                const py = window.arquitecto3D.getPitchYawFromVector(v3);
-                                pitch = py[0]; yaw = py[1];
-                            }
-                        }
-                    }
-                    if (!pitch && !yaw && typeof window.visor360.mouseEventToCoords === 'function') {
-                        // Pannellum fallback
+                    // Método primario: mouseEventToCoords (funciona con Pannellum y Mock API de Ferrari)
+                    if (typeof window.visor360.mouseEventToCoords === 'function') {
                         const coords = window.visor360.mouseEventToCoords(evt);
-                        if (coords) { pitch = coords[0]; yaw = coords[1]; }
+                        if (coords && !isNaN(coords[0])) { pitch = coords[0]; yaw = coords[1]; }
+                    }
+                    // Fallback Ferrari raycaster si no hubo coords
+                    if (!pitch && !yaw && window.arquitecto3D && typeof window.arquitecto3D.getVectorFromEvent === 'function') {
+                        const v3 = window.arquitecto3D.getVectorFromEvent(evt);
+                        if (v3 && typeof window.arquitecto3D.getPitchYawFromVector === 'function') {
+                            const py = window.arquitecto3D.getPitchYawFromVector(v3);
+                            if (py) { pitch = py[0]; yaw = py[1]; }
+                        }
                     }
                 }
 

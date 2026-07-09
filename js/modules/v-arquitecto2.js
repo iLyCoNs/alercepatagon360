@@ -345,7 +345,8 @@ function arq2_getActiveDrawPoints() {
 function arq2_saveVueloCinematico() {
     const pts = (window.arq2VueloPoints || []).slice(0, 3);
     if (pts.length < 2) {
-        alert('Coloca al menos 2 puntos de visión.');
+        const sem = document.getElementById('arq2-semaphore');
+        if (sem) { sem.className = 'arq2-semaphore arq2-sem-red'; sem.textContent = '⚠️ Coloca al menos 2 puntos de visión antes de guardar.'; setTimeout(() => { sem.className = 'arq2-semaphore arq2-sem-green'; sem.textContent = 'Trazo limpio'; }, 3000); }
         return false;
     }
 
@@ -355,8 +356,19 @@ function arq2_saveVueloCinematico() {
         ConfigProyecto.vueloCinematico = pts;
     }
 
+    // Feedback inmediato en semáforo
+    const sem = document.getElementById('arq2-semaphore');
+    if (sem) { sem.className = 'arq2-semaphore arq2-sem-green'; sem.textContent = `🎬 Cinemática guardada con ${pts.length} puntos ✅`; setTimeout(() => { if (sem.textContent.startsWith('🎬')) { sem.className = 'arq2-semaphore arq2-sem-green'; sem.textContent = 'Trazo limpio'; }}, 3000); }
+
+    // Guardar local + nube
     if (typeof saveToLocal === 'function') saveToLocal();
-    arq2_setStatusText(`Cinemática guardada con ${pts.length} puntos.`);
+    if (typeof window.StateManager !== 'undefined' && typeof window.putGithubContents === 'function') {
+        const payload = window.StateManager.buildSnapshot();
+        const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(payload, null, 2))));
+        window.putGithubContents(window.FRESIA_CFG?.datosJson?.split('/').pop() || 'datos.json', encoded)
+            .catch(() => { const s = document.getElementById('arq2-semaphore'); if(s){ s.className='arq2-semaphore arq2-sem-red'; s.textContent='⚠️ Error al guardar en nube (local OK)'; setTimeout(()=>{ s.className='arq2-semaphore arq2-sem-green'; s.textContent='Trazo limpio'; },3000); }});
+    }
+
     arq2_setTool('lote-libre');
     return true;
 }
@@ -3535,3 +3547,8 @@ function arq2_setup() {
     arq2_updatePanelStep();
 }
 
+
+// Exposicion global para Ferrari y otros modulos
+window.arq2_onPanoramaClick = arq2_onPanoramaClick;
+window.arq2_saveVueloCinematico = arq2_saveVueloCinematico;
+window.arq2_setTool = arq2_setTool;

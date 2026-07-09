@@ -73,6 +73,12 @@ window.arquitecto3D = {
                 if (row) row.style.display = 'flex';
                 toolHandled = true;
             }
+            else if (tool === 'vuelo-cinematico') {
+                this.currentTool = 'cinematica'; // Modo especial: captura pts de cámara, no vértices 3D
+                const row = document.getElementById('arq2-calle-curva-row');
+                if (row) row.style.display = 'none';
+                toolHandled = true;
+            }
             else if (tool === 'smart-pin-v2') {
                 this.currentTool = 'smart-pin';
                 const row = document.getElementById('arq2-calle-curva-row');
@@ -257,6 +263,12 @@ window.arquitecto3D = {
                 e.preventDefault();
                 if (this.currentTool === 'calle-curva') {
                     this.finishStreet();
+                } else if (this.currentTool === 'cinematica') {
+                    // Guardar los puntos de cinemática
+                    if (typeof window.arq2_saveVueloCinematico === 'function') {
+                        window.arq2_saveVueloCinematico();
+                    }
+                    this.currentTool = 'draw'; // Volver a modo dibujo normal
                 } else {
                     this.finishPolygon();
                 }
@@ -564,6 +576,29 @@ window.arquitecto3D = {
     },
 
     addPoint: function(e) {
+        // === CINEMATICA: no dibuja vértices 3D, captura pitch/yaw/hfov de cámara ===
+        if (this.currentTool === 'cinematica') {
+            if (typeof window.arq2_onPanoramaClick !== 'undefined') {
+                // Delegar a la lógica de cinematica de v-arquitecto2
+                // Construir mock event con coords de visor
+                const mc = { clientX: e.clientX, clientY: e.clientY };
+                window.arq2_onPanoramaClick(mc, false);
+            } else {
+                // Fallback directo: capturar con movieEventToCoords
+                if (window.visor360 && typeof window.visor360.mouseEventToCoords === 'function') {
+                    const coords = window.visor360.mouseEventToCoords(e);
+                    if (coords && !isNaN(coords[0])) {
+                        window.arq2VueloPoints = window.arq2VueloPoints || [];
+                        const vp = { pitch: parseFloat(coords[0].toFixed(3)), yaw: parseFloat(coords[1].toFixed(3)), hfov: parseFloat((window.visor360.getHfov?.() || 100).toFixed(3)) };
+                        if (window.arq2VueloPoints.length >= 3) { window.arq2VueloPoints[2] = vp; } else { window.arq2VueloPoints.push(vp); }
+                        const sem = document.getElementById('arq2-semaphore');
+                        if (sem) { sem.className = 'arq2-semaphore arq2-sem-yellow'; sem.textContent = `🎬 Cinemática: punto ${window.arq2VueloPoints.length}/3 listo. Enter para guardar.`; }
+                    }
+                }
+            }
+            return; // No dibujar vértice 3D
+        }
+
         // Lógica del "Imán" (Magnet) para cerrar el polígono
         const renderer = window.visor360.getThreeRenderer();
         const rect = renderer.domElement.getBoundingClientRect();
