@@ -37,3 +37,9 @@ Por cada tarea o bug, la respuesta debe incluir estrictamente:
 
 ## Lecciones Hist ricas
 - **Sustituci n de Core Engines (Reemplazo de Pannellum por Three.js):** Al reemplazar un motor central del cual depend a el resto del ecosistema, no basta con emular los m todos o inicializar la gr fica. Se debe auditar el **ciclo de vida cronol gico completo** del arranque (desde DOMContentLoaded hasta el renderizado inicial) para descubrir configuraciones impl citas (ej. hotSpots: getHotspotsConfig() que inyectaba los datos al nacer el visor). Tambi n se debe revisar el impacto de la remoci n del n cleo CSS (pannellum.css) sobre la interfaz sat lite (como la p rdida de position: absolute en los pines) y asegurar que las funciones simuladas en el Mock API que manejan animaciones (lookAt con interpolaci n de tiempo) sean programadas expl citamente para recrear el timing exacto de la experiencia del usuario (ej. vuelos cinem ticos de 3 segundos), ya que otros procesos as ncronos (setTimeout) podr an depender de la duraci n de estos eventos para detonar la interfaz.
+
+## Lecciones Historicas (Sesion 143+)
+- Pines pegados: window.arq2PinSubTool vs arq2PinSubTool son distintos en modulos. Resetear siempre directo con window.arq2PinSubTool = null.
+- Vertice fantasma Drone: usar flag window.__droneClickPending para abortar arq2_onPanoramaClick antes de agregar puntos.
+- Cinematica inactiva: arq2_setTool vuelo-cinematico debe activar arquitecto3D.isActive = true para recibir clicks.
+- No usar alert() en funciones async criticas como GlobalCloudSave.

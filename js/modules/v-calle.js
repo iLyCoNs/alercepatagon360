@@ -875,10 +875,15 @@ function arq2_bindPinRowButtons() {
             btnDrone.textContent = '🚁 Clic en la escena...';
             document.body.style.cursor = 'crosshair';
 
+            // FLAG: previene que arq2_onPanoramaClick dibuje un vértice en este click
+            window.__droneClickPending = true;
+
             const onClickScene = (evt) => {
                 // Detener propagación para que Ferrari no dibuje vértice
                 evt.stopPropagation();
                 evt.preventDefault();
+                // Limpiar flag drone
+                window.__droneClickPending = false;
 
                 // Calcular pitch/yaw — Ferrari raycaster como primario
                 let pitch = 0, yaw = 0;

@@ -291,7 +291,17 @@ window.arquitecto3D = {
                     if (typeof window.arq2_saveVueloCinematico === 'function') {
                         window.arq2_saveVueloCinematico();
                     }
-                    this.currentTool = 'draw'; // Volver a modo dibujo normal
+                    this.currentTool = 'draw';
+                    // Desactivar Ferrari y restaurar botón
+                    this.isActive = false;
+                    const btnFerrari = document.getElementById('btn-arq3-mode');
+                    if (btnFerrari) {
+                        btnFerrari.classList.remove('active');
+                        btnFerrari.style.background = '';
+                        btnFerrari.style.color = '#ef4444';
+                    }
+                    // Volver a Arq2 tool lote-libre para que el usuario pueda seguir trabajando
+                    if (typeof window.arq2_setTool === 'function') window.arq2_setTool('lote-libre');
                 } else {
                     this.finishPolygon();
                 }

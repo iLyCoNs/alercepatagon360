@@ -124,6 +124,8 @@ function arq2_screenToPanoCoords(clientX, clientY) {
 }
 function arq2_onPanoramaClick(mock, isDblClick) {
     if (!isArquitecto2Active || !visor360) return;
+    // Guard: si el Drone está esperando un clic en escena, abortar para no dibujar vértices fantasma
+    if (window.__droneClickPending) return;
     if (document.getElementById('franja-lotes-modal')?.classList.contains('open')) return;
     if (arq2Tool === 'eraser') {
         runEraserAtEvent(mock);

@@ -852,7 +852,6 @@ function setExportBtnState(btn, html, bg, disabled) {
 
 }
 window.GlobalCloudSave = async function() {
-    alert("Iniciando proceso de guardado. Asegúrate de tener conexión.");
     const btn = document.getElementById('btn-global-save');
     if (guardarNubeEnCurso) return;
     
