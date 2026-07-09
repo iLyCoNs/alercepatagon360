@@ -338,7 +338,45 @@ function arq2_migrateCallesGeometry() {
     line.halfDeg = geo.halfDeg;
   }
 }
-async function fetchMasterData() { try { const response = await fetch(FRESIA_CFG.datosJson + '?v=' + new Date().getTime()); if(response.ok) { const data = await response.json(); ConfigProyecto = data.configProyecto || ConfigProyecto; OrigenDrone = data.origen || null; NorteOffset = data.norte || 0; BaseDatosLotes = data.lotes || []; PuntosHorizonte = data.horizontes || []; allDrawnLines = data.trazos || []; } else { loadFromLocal(); } } catch(e) { loadFromLocal(); } applyProjectConfig(); await syncRutasDesdeOrigen(); }
+async function fetchMasterData() {
+    try {
+        const response = await fetch(FRESIA_CFG.datosJson + '?v=' + new Date().getTime());
+        if(response.ok) {
+            const data = await response.json();
+            const localDataStr = localStorage.getItem(FRESIA_CFG.autosaveKey);
+            let useLocal = false;
+            if (localDataStr) {
+                try {
+                    const localData = JSON.parse(localDataStr);
+                    if (localData.timestamp && data.timestamp && localData.timestamp > data.timestamp) {
+                        useLocal = true;
+                        console.log("Using newer localStorage data to bypass GitHub Pages cache");
+                    }
+                } catch(e) {}
+            }
+            if (useLocal) {
+                loadFromLocal();
+            } else {
+                ConfigProyecto = data.configProyecto || ConfigProyecto;
+                OrigenDrone = data.origen || null;
+                NorteOffset = data.norte || 0;
+                if (data.entidades) {
+                    window.StateManager.applySnapshot(data);
+                } else {
+                    BaseDatosLotes = data.lotes || [];
+                    PuntosHorizonte = data.horizontes || [];
+                    allDrawnLines = data.trazos || [];
+                }
+            }
+        } else {
+            loadFromLocal();
+        }
+    } catch(e) {
+        loadFromLocal();
+    }
+    applyProjectConfig();
+    await syncRutasDesdeOrigen();
+}
 
 let visor360, currentPinSizeIndex = 1, isIntroAnimating = true, isDevModeDrawActive = false, isDevModePinsActive = false, isArquitecto2Active = false, arq2Tool = 'lote-libre', arq2LinePoints = [], arq2TempLineId = 'arq2_temp_' + Date.now(), arq2CosturaSnap = null, arq2CosturaStyle = 'punteada', arq2SelectedLineId = null, arq2FilaVariableContorno = null, arq2PendingFila = null, arq2InvasionActive = false, arq2SmoothCurves = true, arq2DemoActive = false, arq2DemoTimers = [], arq2DemoLoopInterval = null, arq2DemoPY = null, currentLineType = 'solida', currentLinePoints = [], currentPinTypeMap = 'disponible', currentTempLineId = 'temp_' + Date.now(), draggingVertex = null, draggingFranjaDiv = null, draggingCalleMove = null, pickedPin = null, snapCursor = null, ghostPin = null, snappedCoords = null, activePinArgs = null, isCreatingNewPin = false, isSnapToClose = false, franjaCornerA = null, franjaPreviewQuad = null, franjaPreviewDivs = [], franjaCurvaPreviewStrip = null, franjaDraftCount = 10, franjaDraftBaseM2 = 5000, franjaPendingCreate = null, guardarNubeEnCurso = false, draftCalleAncho = 8, draftCalleAlpha = 0, draftCalleLabelScale = 1, draftCalleShowLabel = true, draftCalleSnapFranja = false, calleSnapIsFranjaEdge = false, lastCalleTap = null, draftCalleCurvaColor = '#5a5f69', isLineaPinesActive = false, lineaPinesPoints = [], lineaPinesTempId = 'linea_pins_' + Date.now(), franjaCurvaFrente = [], franjaCurvaFase = 0;
 function revealLoteoOverlay() {
