@@ -125,7 +125,7 @@ function runPannellumIntroBootstrap() {
                         setTimeout(() => {
                             visor360.lookAt(-15, 45, 95, 3000);
                             setTimeout(() => {
-                                visor360.lookAt(-89, 65, 115, 3500);
+                                visor360.lookAt(89, 65, 115, 3500);
                                 setTimeout(() => { revealLoteoOverlay(); }, 3500);
                             }, 3000);
                         }, 2500);
