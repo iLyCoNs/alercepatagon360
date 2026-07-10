@@ -370,7 +370,8 @@ function revealLoteoOverlay() {
     document.body.classList.add('loteo-overlay-ready');
     syncFranjaVisualsOnReady();
     const svg = document.getElementById('loteo-svg');
-    if (svg && isSvgRenderAllowed()) svg.style.opacity = '1';
+    if (svg && isSvgRenderAllowed()) { svg.style.display = ''; svg.style.opacity = '1'; }
+
     if (!visor360) return;
     arq2_migrateCallesGeometry(); // fix existing closed streets to render as rings
     refreshAllHotspots(true);
