@@ -527,9 +527,9 @@ async function initPannellum() {
 
     window.visor360 = {
         getPitch: () => threePitch,
-        getYaw: () => threeYaw,
-        setPitch: (p, time) => { if (time) window.visor360.lookAt(p, undefined, undefined, time); else { threeTargetPitch = p; threePitch = p; } },
-        setYaw: (y, time) => { if (time) window.visor360.lookAt(undefined, y, undefined, time); else { threeTargetYaw = y; threeYaw = y; } },
+        getYaw: () => -threeYaw,
+        setPitch: (p, time) => { if (time) window.visor360.lookAt(p, undefined, undefined, time); else { threePitch = p; threeTargetPitch = p; } },
+        setYaw: (y, time) => { if (time) window.visor360.lookAt(undefined, y, undefined, time); else { threeYaw = -y; threeTargetYaw = -y; } },
         getHfov: () => threeCamera.fov,
         setHfov: (f, time) => { if (time) window.visor360.lookAt(undefined, undefined, f, time); else { threeCamera.fov = f; threeCamera.updateProjectionMatrix(); } },
         getThreeScene: () => threeScene,
@@ -542,6 +542,7 @@ async function initPannellum() {
             threeRenderer.setSize(window.innerWidth, window.innerHeight);
         },
         lookAt: (pitch, yaw, hfov, time) => {
+            const finalYaw = yaw !== undefined ? -yaw : undefined;
             if (time && time > 0) {
                 const startTime = Date.now();
                 const startPitch = threeTargetPitch;
@@ -554,7 +555,7 @@ async function initPannellum() {
                     const ease = progress * progress * (3 - 2 * progress); // smoothstep
                     
                     if (pitch !== undefined) threeTargetPitch = startPitch + (pitch - startPitch) * ease;
-                    if (yaw !== undefined) threeTargetYaw = startYaw + (yaw - startYaw) * ease;
+                    if (finalYaw !== undefined) threeTargetYaw = startYaw + (finalYaw - startYaw) * ease;
                     if (hfov !== undefined) {
                         threeCamera.fov = startFov + (hfov - startFov) * ease;
                         threeCamera.updateProjectionMatrix();
@@ -564,7 +565,7 @@ async function initPannellum() {
                 requestAnimationFrame(step);
             } else {
                 if (pitch !== undefined) threeTargetPitch = pitch;
-                if (yaw !== undefined) threeTargetYaw = yaw;
+                if (finalYaw !== undefined) threeTargetYaw = finalYaw;
                 if (hfov !== undefined) { threeCamera.fov = hfov; threeCamera.updateProjectionMatrix(); }
             }
         },
@@ -607,8 +608,8 @@ async function initPannellum() {
                     const ratioY = Math.max(-1, Math.min(1, p.y / radius));
                     const pitch = Math.asin(ratioY) * (180 / Math.PI);
                     const yaw = Math.atan2(p.x, -p.z) * (180 / Math.PI);
-                    // Bug 1: Devolver pitch directo (no invertido) y yaw invertido (para contrarrestar el scale -X del renderer 3D)
-                    return [pitch, -yaw];
+                    // Bug 1: Devolver pitch directo y yaw directo (Three.js yaw invertido se maneja en getYaw/setYaw/lookAt)
+                    return [pitch, yaw];
                 }
             }
             return [threePitch, threeYaw];

@@ -40,7 +40,8 @@
         'relleno-auto':      'Dibuja el contorno del lote. Al cerrar se asigna numero automaticamente.',
         'fila-variable':     'Dibuja el contorno de toda la hilera. El modal divide proporcionalmente.',
         'kprano-capsule':    'Clic en cualquier punto de la foto para anclar una Capsula 3D.',
-        'costura':           'Dibuja un lote que comparte borde con otro existente.'
+        'costura':           'Dibuja un lote que comparte borde con otro existente.',
+        'limpiar-todo':      'Precaucion: Elimina todos los dibujos de la foto.'
     };
 
     var SVG_ICONS = {
@@ -50,13 +51,14 @@
         'relleno-auto':      '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18M3 9h18M3 15h18"/>',
         'fila-variable':     '<rect x="2" y="7" width="20" height="10" rx="1"/><line x1="8" y1="7" x2="8" y2="17"/><line x1="14" y1="7" x2="14" y2="17"/>',
         'kprano-capsule':    '<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>',
-        'costura':           '<path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>'
+        'costura':           '<path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>',
+        'limpiar-todo':      '<path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/>'
     };
 
     var LABELS = {
         'lote-libre': 'Lapiz', 'calle-curva-arq2': 'Calle', 'eraser': 'Borrar',
         'relleno-auto': 'Auto', 'fila-variable': 'Hilera',
-        'kprano-capsule': 'Capsula', 'costura': 'Costura'
+        'kprano-capsule': 'Capsula', 'costura': 'Costura', 'limpiar-todo': 'Limpiar Todo'
     };
 
     function svgIcon(id) {
@@ -95,6 +97,10 @@
         panel.appendChild(makeGroupLabel('Edicion'));
         panel.appendChild(makeGrid([
             { id: 'eraser', extra: 'kpk-btn-red' }, { id: 'costura' }
+        ]));
+        panel.appendChild(makeGroupLabel('Peligro'));
+        panel.appendChild(makeGrid([
+            { id: 'limpiar-todo', extra: 'kpk-btn-red' }
         ]));
         panel.appendChild(makeSep());
 
@@ -192,6 +198,22 @@
 
     // ── SELECCIONAR HERRAMIENTA ──────────────────────────────────
     function setTool(tool) {
+        if (!isOpen) return;
+
+        if (tool === 'limpiar-todo') {
+            if (confirm("PELIGRO: Esto borrara TODOS los dibujos de la foto 360 de forma irreversible y guardara los cambios en la nube. ¿Estas absolutamente seguro?")) {
+                if (typeof allDrawnLines !== 'undefined') allDrawnLines.length = 0;
+                if (typeof DOMCache !== 'undefined') DOMCache.paths = {};
+                if (typeof syncSVGElements === 'function') syncSVGElements();
+                if (typeof updateSVGPaths === 'function') updateSVGPaths();
+                if (typeof refreshAllHotspots === 'function') refreshAllHotspots(true);
+                if (typeof GlobalCloudSave === 'function') GlobalCloudSave();
+                setStatus('warning', 'Todo el terreno ha sido limpiado.');
+            }
+            return;
+        }
+
+        if (activeTool === tool) return;
         activeTool = tool;
         document.querySelectorAll('.kpk-btn').forEach(function (b) { b.classList.remove('kpk-btn-on'); });
         var btn = document.querySelector('.kpk-btn[data-kpk-tool="' + tool + '"]');
