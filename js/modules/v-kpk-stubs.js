@@ -53,4 +53,18 @@ if (typeof window.exportarInventarioCSV === 'undefined') {
     };
 }
 
+// ── Funciones Core Antiguas (Migradas a Three.js) ───────────────
+if (typeof window.refreshAllHotspots === 'undefined') {
+    window.refreshAllHotspots = function (force) {
+        // En el nuevo motor (KpranoKiller v4 / Three.js), el render es SVG.
+        // Redirigimos esta peticion legacy a los updaters modernos.
+        if (typeof syncSVGElements === 'function') {
+            try { syncSVGElements(); } catch (e) {}
+        }
+        if (typeof updateSVGPaths === 'function') {
+            try { updateSVGPaths(); } catch (e) {}
+        }
+    };
+}
+
 console.log('[v-kpk-stubs v2] Todos los stubs instalados.');
