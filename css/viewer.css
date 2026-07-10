@@ -1,7 +1,7 @@
-﻿/* FRESIA360 visor aereo - css/viewer.css (index.html Fase 1) */
+/* FRESIA360 visor aereo - css/viewer.css (index.html Fase 1) */
 
 :root { --c-disp: 16, 185, 129; --o-disp: 0.15; --c-res: 245, 158, 11; --o-res: 0.15; --c-vend: 239, 68, 68; --o-vend: 0.25; --c-nodisp: 148, 163, 184; --o-nodisp: 0.25; --stroke-dyn: 2.5px; --stroke-dyn-hover: 3.5px; }
-* { margin: 0; padding: 0; box-sizing: border-box; font-family: '-apple-system, BlinkMacSystemFont, San Francisco, Helvetica Neue, Helvetica, Arial, sans-serif; -webkit-user-drag: none; user-drag: none; -webkit-tap-highlight-color: transparent; }
+* { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "San Francisco", "Helvetica Neue", Helvetica, Arial, sans-serif; -webkit-user-drag: none; user-drag: none; -webkit-tap-highlight-color: transparent; }
 body, html { width: 100%; height: 100%; overflow: hidden; background-color: #090b11; color: #ffffff; user-select: none !important; }
 input, select, textarea { user-select: auto !important; }
 .hide-mobile { display: block; } .hide-desktop { display: none !important; }
