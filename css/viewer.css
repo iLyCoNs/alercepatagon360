@@ -1324,8 +1324,77 @@ path.kpk-draw-guide {
 }
 
 /* ============================================================
-   KPK VERTEX EDITOR — Handles, Selección y Fusión
+   KPK DRAW HUD — Sistema de feedback del lápiz (HTML divs)
+   Completamente inmune a refreshAllHotspots y syncSVGElements.
    ============================================================ */
+
+#kpk-hud-layer {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 600;
+    overflow: visible;
+}
+
+#kpk-hud-svg {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 590;
+    overflow: visible;
+}
+
+/* Nodo base de vértice de dibujo */
+.kpk-hud-node {
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #ffffff;
+    border: 2.5px solid #10b981;
+    box-shadow: 0 0 0 3px rgba(16,185,129,0.25), 0 0 8px rgba(16,185,129,0.6);
+    transform: none;  /* left/top ya incluyen el offset del radio */
+    pointer-events: none;
+    transition: width 0.12s ease, height 0.12s ease, background 0.12s ease;
+    will-change: left, top;
+}
+
+/* Primer punto: verde sólido — indica cierre de polígono */
+.kpk-hud-node.kpk-hud-first {
+    background: #10b981;
+    border-color: #ffffff;
+    box-shadow: 0 0 0 3px rgba(16,185,129,0.4), 0 0 10px rgba(16,185,129,0.8);
+    width: 16px;
+    height: 16px;
+}
+
+/* Último punto colocado: amarillo ámbar — punto activo */
+.kpk-hud-node.kpk-hud-last:not(.kpk-hud-first) {
+    background: #fbbf24;
+    border-color: #ffffff;
+    box-shadow: 0 0 0 3px rgba(251,191,36,0.3), 0 0 9px rgba(251,191,36,0.7);
+}
+
+/* Polilínea sólida entre vértices colocados */
+.kpk-hud-polyline {
+    fill: none;
+    stroke: rgba(255,255,255,0.85);
+    stroke-width: 2;
+    stroke-linejoin: round;
+    pointer-events: none;
+}
+
+/* Línea guía fantasma hacia el cursor */
+.kpk-hud-guide {
+    stroke: rgba(255,255,255,0.5);
+    stroke-width: 1.5;
+    stroke-dasharray: 7 5;
+    pointer-events: none;
+}
+
+
 
 /* Handle base: círculo grande arrastrable sobre lotes guardados */
 .kpk-vertex-edit {
