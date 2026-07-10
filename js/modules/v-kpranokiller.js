@@ -1,182 +1,226 @@
-﻿// =================================================================
-// KpranoKiller Motor Maestro - Herramientas 2030
-// Modulo autonomo: Alt+A registrado en DOMContentLoaded.
-// No depende de arq2_setup() ni de Pannellum.
-// =================================================================
+// ================================================
+// KpranoKiller — Menu de Herramientas
+// Autonomo. Alt+A abre/cierra. FAB siempre visible.
+// ================================================
 (function () {
-    use strict;
-    var kpkOpen = false;
-    var kpkActiveTool = null;
 
-    var KPK_GUIDE = {
-        lote-libre:       Clic en cada esquina del terreno. Cierra acercandote al origen o con Enter.,
-        calle-curva-arq2: Clic a lo largo del eje de la calle. Enter para finalizar con curvas suaves.,
-        relleno-auto:     Dibuja el contorno. Al cerrar, se asigna numero automaticamente.,
-        fila-variable:    Dibuja contorno de TODA la hilera. El modal dividira en lotes proporcionales.,
-        kprano-capsule:   Clic en cualquier punto de la foto para anclar una Capsula Espacial 3D.,
-        eraser:           Clic sobre cualquier elemento para eliminarlo del mapa.,
-        costura:          Lote que comparte borde con uno existente. El borde compartido se marca solo.
+    var isOpen = false;
+    var activeTool = null;
+
+    var GUIDES = {
+        'lote-libre':        'Haz clic en cada esquina del terreno. Acerca el ultimo punto al primero para cerrar, o presiona Enter.',
+        'calle-curva-arq2':  'Haz clic a lo largo del eje central de la calle. Presiona Enter para finalizar.',
+        'eraser':            'Haz clic sobre cualquier lote, calle o elemento para eliminarlo.',
+        'relleno-auto':      'Dibuja el contorno del lote. Al cerrar se asigna numero automaticamente.',
+        'fila-variable':     'Dibuja el contorno de toda la hilera. El modal divide proporcionalmente.',
+        'kprano-capsule':    'Haz clic en cualquier punto de la foto para anclar una Capsula 3D.',
+        'costura':           'Dibuja un lote que comparte borde con otro existente.'
     };
 
-    function kpk_buildPanel() {
-        var p = document.createElement(div);
-        p.id = kpk-panel;
-        p.innerHTML = [
-            '<div class=kpk-panel-header>',
-            '  <div class=kpk-traffic>',
-            '    <span class=kpk-dot kpk-dot-close id=kpk-close-btn></span>',
-            '    <span class=kpk-dot kpk-dot-min></span>',
-            '    <span class=kpk-dot kpk-dot-max></span>',
-            '  </div>',
-            '  <span class=kpk-panel-title>KpranoKiller</span>',
-            '  <span class=kpk-panel-badge>PRO</span>',
-            '</div>',
-            '<div class=kpk-status-bar id=kpk-status>',
-            '  <span class=kpk-status-dot id=kpk-status-dot></span>',
-            '  <span id=kpk-status-text>Selecciona una herramienta</span>',
-            '</div>',
-            '<div class=kpk-divider></div>',
-            '<div class=kpk-group-label>Diseno de Terreno</div>',
-            '<div class=kpk-tools-grid>',
-            '  <button class=kpk-tool data-tool=lote-libre title=Lote libre a mano alzada>',
-            '    <svg viewBox=0 0 24 24 fill=none stroke=currentColor stroke-width=1.5><path d=M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z/><path d=M13 13l6 6/></svg>',
-            '    <span>Lote</span>',
-            '  </button>',
-            '  <button class=kpk-tool data-tool=calle-curva-arq2 title=Calle con curvas suaves>',
-            '    <svg viewBox=0 0 24 24 fill=none stroke=currentColor stroke-width=1.5><path d=M3 17c3-3 5-5 8-5s5 2 9 2/><path d=M3 7c3 3 5 5 8 5s5-2 9-2/></svg>',
-            '    <span>Calle</span>',
-            '  </button>',
-            '  <button class=kpk-tool data-tool=relleno-auto title=Lote numerado automatico>',
-            '    <svg viewBox=0 0 24 24 fill=none stroke=currentColor stroke-width=1.5><rect x=3 y=3 width=18 height=18 rx=2/><path d=M9 3v18M15 3v18M3 9h18M3 15h18/></svg>',
-            '    <span>Auto</span>',
-            '  </button>',
-            '  <button class=kpk-tool data-tool=fila-variable title=Hilera de lotes proporcionales>',
-            '    <svg viewBox=0 0 24 24 fill=none stroke=currentColor stroke-width=1.5><rect x=2 y=7 width=20 height=10 rx=1/><line x1=8 y1=7 x2=8 y2=17/><line x1=14 y1=7 x2=14 y2=17/></svg>',
-            '    <span>Hilera</span>',
-            '  </button>',
-            '</div>',
-            '<div class=kpk-group-label>Smart Points</div>',
-            '<div class=kpk-tools-grid>',
-            '  <button class=kpk-tool kpk-tool-highlight data-tool=kprano-capsule title=Capsula 3D anclada a la foto>',
-            '    <svg viewBox=0 0 24 24 fill=none stroke=currentColor stroke-width=1.5><path d=M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z/><circle cx=12 cy=10 r=3/></svg>',
-            '    <span>Capsula</span>',
-            '  </button>',
-            '</div>',
-            '<div class=kpk-group-label>Edicion</div>',
-            '<div class=kpk-tools-grid>',
-            '  <button class=kpk-tool kpk-tool-danger data-tool=eraser title=Borrar elementos>',
-            '    <svg viewBox=0 0 24 24 fill=none stroke=currentColor stroke-width=1.5><path d=M20 20H7L3 16l13-13 4 4-6.5 6.5/><path d=M6 15l3 5/></svg>',
-            '    <span>Borrar</span>',
-            '  </button>',
-            '  <button class=kpk-tool data-tool=costura title=Lote que comparte borde>',
-            '    <svg viewBox=0 0 24 24 fill=none stroke=currentColor stroke-width=1.5><path d=M12 2L2 7l10 5 10-5-10-5z/><path d=M2 17l10 5 10-5/><path d=M2 12l10 5 10-5/></svg>',
-            '    <span>Costura</span>',
-            '  </button>',
-            '</div>',
-            '<div class=kpk-divider></div>',
-            '<div class=kpk-guide-box id=kpk-guide-box>',
-            '  <p id=kpk-guide-text>Elige una herramienta para comenzar a disenar sobre la foto 360.</p>',
-            '</div>',
-            '<button class=kpk-save-btn onclick=typeof GlobalCloudSave===\'function\'&&GlobalCloudSave()>',
-            '  <svg viewBox=0 0 24 24 fill=none stroke=currentColor stroke-width=1.5><path d=M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z/><polyline points=17 21 17 13 7 13 7 21/><polyline points=7 3 7 8 15 8/></svg>',
-            '  Guardar en Nube',
-            '</button>'
-        ].join(");
- return p;
- }
+    var SVG_ICONS = {
+        'lote-libre':        '<path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z"/><path d="M13 13l6 6"/>',
+        'calle-curva-arq2':  '<path d="M3 17c3-3 5-5 8-5s5 2 9 2"/><path d="M3 7c3 3 5 5 8 5s5-2 9-2"/>',
+        'eraser':            '<path d="M20 20H7L3 16l13-13 4 4-6.5 6.5"/><path d="M6 15l3 5"/>',
+        'relleno-auto':      '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18M3 9h18M3 15h18"/>',
+        'fila-variable':     '<rect x="2" y="7" width="20" height="10" rx="1"/><line x1="8" y1="7" x2="8" y2="17"/><line x1="14" y1="7" x2="14" y2="17"/>',
+        'kprano-capsule':    '<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>',
+        'costura':           '<path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>'
+    };
 
- function kpk_buildFAB() {
- var btn = document.createElement(button);
- btn.id = kpk-fab;
- btn.title = KpranoKiller - Panel Diseno (Alt+A);
- btn.innerHTML = '<svg viewBox=0 0 24 24 fill=none stroke=currentColor stroke-width=1.5><polygon points=12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2/><line x1=12 y1=8 x2=12 y2=13/><line x1=12 y1=16.5 x2=12.01 y2=16.5/></svg>';
- return btn;
- }
+    var LABELS = {
+        'lote-libre': 'Lote', 'calle-curva-arq2': 'Calle', 'eraser': 'Borrar',
+        'relleno-auto': 'Auto', 'fila-variable': 'Hilera',
+        'kprano-capsule': 'Capsula', 'costura': 'Costura'
+    };
 
- function kpk_init() {
- var panel = kpk_buildPanel();
- var fab = kpk_buildFAB();
- document.body.appendChild(panel);
- document.body.appendChild(fab);
+    function svgIcon(id) {
+        return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">' + SVG_ICONS[id] + '</svg>';
+    }
 
- document.getElementById(kpk-close-btn).addEventListener(click, function(){ kpk_toggle(false); });
- fab.addEventListener(click, function(){ kpk_toggle(); });
+    function makeToolBtn(id, extra) {
+        var btn = document.createElement('button');
+        btn.className = 'kpk-btn' + (extra ? ' ' + extra : '');
+        btn.dataset.kpkTool = id;
+        btn.innerHTML = svgIcon(id) + '<span>' + LABELS[id] + '</span>';
+        return btn;
+    }
 
- document.querySelectorAll(.kpk-tool[data-tool]).forEach(function(btn){
- btn.addEventListener(click, function(){ kpk_setTool(btn.dataset.tool); });
- });
+    function makeGroupLabel(text) {
+        var d = document.createElement('div');
+        d.className = 'kpk-group';
+        d.textContent = text;
+        return d;
+    }
 
- // ALT+A — Unico listener, registrado aqui, ejecutado siempre al cargar la pagina
- document.addEventListener(keydown, function(e){
- if (e.altKey && (e.key === a || e.key === A) && !e.ctrlKey && !e.metaKey) {
- var tag = document.activeElement && document.activeElement.tagName;
- if (tag === INPUT || tag === TEXTAREA || tag === SELECT) return;
- e.preventDefault();
- kpk_toggle();
- }
- });
+    function makeGrid(ids, extras) {
+        var grid = document.createElement('div');
+        grid.className = 'kpk-grid';
+        ids.forEach(function(id, i) {
+            grid.appendChild(makeToolBtn(id, extras && extras[i]));
+        });
+        return grid;
+    }
 
- console.log([KpranoKiller] Motor listo. Alt+A = abrir/cerrar panel.);
- }
+    function buildPanel() {
+        var panel = document.createElement('div');
+        panel.id = 'kpk-panel';
 
- function kpk_toggle(force) {
- kpkOpen = (typeof force === boolean) ? force : !kpkOpen;
- var panel = document.getElementById(kpk-panel);
- var fab = document.getElementById(kpk-fab);
- if (!panel) return;
+        // Header
+        var hdr = document.createElement('div');
+        hdr.className = 'kpk-header';
+        hdr.innerHTML =
+            '<div class="kpk-traffic">' +
+            '<span class="kpk-dot kpk-red" id="kpk-btn-close"></span>' +
+            '<span class="kpk-dot kpk-yellow"></span>' +
+            '<span class="kpk-dot kpk-green"></span>' +
+            '</div>' +
+            '<span class="kpk-title">KpranoKiller</span>' +
+            '<span class="kpk-badge">PRO</span>';
+        panel.appendChild(hdr);
 
- panel.classList.toggle(kpk-panel-open, kpkOpen);
- if (fab) fab.classList.toggle(kpk-fab-active, kpkOpen);
+        // Status
+        var sb = document.createElement('div');
+        sb.className = 'kpk-statusbar';
+        sb.innerHTML = '<span class="kpk-dot-status" id="kpk-dot-status"></span><span id="kpk-status-msg">Selecciona una herramienta</span>';
+        panel.appendChild(sb);
 
- // Sincronizar con motor arq2
- window.isArquitecto2Active = kpkOpen;
- document.body.classList.toggle(arq2-active, kpkOpen);
- if (typeof arq2_toggleArquitecto2 === function) {
- try { arq2_toggleArquitecto2(kpkOpen); } catch(e){}
- }
+        // Separador
+        var sep0 = document.createElement('div');
+        sep0.className = 'kpk-sep';
+        panel.appendChild(sep0);
 
- if (!kpkOpen) {
- kpk_setStatus(idle, Selecciona una herramienta);
- document.querySelectorAll(.kpk-tool).forEach(function(b){ b.classList.remove(kpk-tool-active); });
- }
- }
+        // Grupo Terreno
+        panel.appendChild(makeGroupLabel('Diseno de Terreno'));
+        panel.appendChild(makeGrid(['lote-libre', 'calle-curva-arq2', 'relleno-auto', 'fila-variable'], [null, null, null, null]));
 
- function kpk_setTool(tool) {
- kpkActiveTool = tool;
- document.querySelectorAll(.kpk-tool).forEach(function(b){ b.classList.remove(kpk-tool-active); });
- var btn = document.querySelector(.kpk-tool[data-tool=" + tool + "]);
- if (btn) btn.classList.add(kpk-tool-active);
+        // Grupo Smart Points
+        panel.appendChild(makeGroupLabel('Smart Points'));
+        panel.appendChild(makeGrid(['kprano-capsule'], ['kpk-btn-blue']));
 
- var guide = document.getElementById(kpk-guide-text);
- if (guide) guide.textContent = KPK_GUIDE[tool] || Herramienta activa.;
+        // Grupo Edicion
+        panel.appendChild(makeGroupLabel('Edicion'));
+        panel.appendChild(makeGrid(['eraser', 'costura'], ['kpk-btn-red', null]));
 
- kpk_setStatus(active, Activo:  + tool);
+        // Separador
+        var sep1 = document.createElement('div');
+        sep1.className = 'kpk-sep';
+        panel.appendChild(sep1);
 
- if (typeof arq2_setTool === function) {
- try { arq2_setTool(tool); } catch(e){}
- } else {
- window.arq2Tool = tool;
- }
- }
+        // Guia
+        var guide = document.createElement('div');
+        guide.className = 'kpk-guide';
+        guide.id = 'kpk-guide';
+        guide.textContent = 'Elige una herramienta para comenzar a disenar sobre la foto 360.';
+        panel.appendChild(guide);
 
- function kpk_setStatus(state, msg) {
- var dot = document.getElementById(kpk-status-dot);
- var text = document.getElementById(kpk-status-text);
- if (!dot || !text) return;
- dot.className = kpk-status-dot;
- if (state === active) dot.classList.add(kpk-status-active);
- if (state === warning) dot.classList.add(kpk-status-warning);
- if (state === error) dot.classList.add(kpk-status-error);
- text.textContent = msg || ;
- }
+        // Guardar
+        var saveBtn = document.createElement('button');
+        saveBtn.className = 'kpk-save';
+        saveBtn.innerHTML = svgIcon('lote-libre').replace(SVG_ICONS['lote-libre'],
+            '<path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>') +
+            ' Guardar en Nube';
+        saveBtn.addEventListener('click', function() {
+            if (typeof GlobalCloudSave === 'function') GlobalCloudSave();
+        });
+        panel.appendChild(saveBtn);
 
- window.kpk_toggle = kpk_toggle;
- window.kpk_setTool = kpk_setTool;
- window.kpk_setStatus = kpk_setStatus;
+        return panel;
+    }
 
- if (document.readyState === loading) {
- document.addEventListener(DOMContentLoaded, kpk_init);
- } else {
- kpk_init();
- }
+    function buildFAB() {
+        var fab = document.createElement('button');
+        fab.id = 'kpk-fab';
+        fab.title = 'KpranoKiller (Alt+A)';
+        fab.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2"/><line x1="12" y1="8" x2="12" y2="13"/><circle cx="12" cy="16.5" r="0.5" fill="currentColor"/></svg>';
+        return fab;
+    }
+
+    function toggle(force) {
+        isOpen = typeof force === 'boolean' ? force : !isOpen;
+        var panel = document.getElementById('kpk-panel');
+        var fab   = document.getElementById('kpk-fab');
+        if (!panel) return;
+        panel.classList.toggle('kpk-open', isOpen);
+        if (fab) fab.classList.toggle('kpk-fab-on', isOpen);
+
+        // Activar motor de dibujo
+        window.isArquitecto2Active = isOpen;
+        document.body.classList.toggle('arq2-active', isOpen);
+        if (typeof arq2_toggleArquitecto2 === 'function') {
+            try { arq2_toggleArquitecto2(isOpen); } catch(e) {}
+        }
+        if (!isOpen) {
+            activeTool = null;
+            setStatus('idle', 'Panel cerrado');
+            document.querySelectorAll('.kpk-btn').forEach(function(b) { b.classList.remove('kpk-btn-on'); });
+        }
+    }
+
+    function setTool(tool) {
+        activeTool = tool;
+        document.querySelectorAll('.kpk-btn').forEach(function(b) { b.classList.remove('kpk-btn-on'); });
+        var btn = document.querySelector('.kpk-btn[data-kpk-tool="' + tool + '"]');
+        if (btn) btn.classList.add('kpk-btn-on');
+        var guide = document.getElementById('kpk-guide');
+        if (guide) guide.textContent = GUIDES[tool] || 'Herramienta activa.';
+        setStatus('active', tool);
+        // Llamar motor arq2
+        if (typeof arq2_setTool === 'function') {
+            try { arq2_setTool(tool); } catch(e) {}
+        } else {
+            window.arq2Tool = tool;
+        }
+    }
+
+    function setStatus(state, msg) {
+        var dot  = document.getElementById('kpk-dot-status');
+        var text = document.getElementById('kpk-status-msg');
+        if (dot) {
+            dot.className = 'kpk-dot-status';
+            if (state === 'active') dot.classList.add('kpk-dot-on');
+            if (state === 'warning') dot.classList.add('kpk-dot-warn');
+        }
+        if (text) text.textContent = msg || '';
+    }
+
+    function init() {
+        var panel = buildPanel();
+        var fab   = buildFAB();
+        document.body.appendChild(panel);
+        document.body.appendChild(fab);
+
+        var closeBtn = document.getElementById('kpk-btn-close');
+        if (closeBtn) closeBtn.addEventListener('click', function() { toggle(false); });
+        fab.addEventListener('click', function() { toggle(); });
+
+        document.querySelectorAll('.kpk-btn[data-kpk-tool]').forEach(function(btn) {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                setTool(btn.dataset.kpkTool);
+            });
+        });
+
+        // Alt+A — unico listener global
+        document.addEventListener('keydown', function(e) {
+            if (!e.altKey) return;
+            if (e.key !== 'a' && e.key !== 'A') return;
+            if (e.ctrlKey || e.metaKey) return;
+            var tag = document.activeElement && document.activeElement.tagName;
+            if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+            e.preventDefault();
+            toggle();
+        });
+
+        window.kpk_toggle  = toggle;
+        window.kpk_setTool = setTool;
+        window.kpk_status  = setStatus;
+        console.log('[KpranoKiller] Listo — Alt+A o FAB para abrir panel.');
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+
 })();

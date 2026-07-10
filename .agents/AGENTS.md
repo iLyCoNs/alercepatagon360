@@ -57,3 +57,71 @@ Por cada tarea o bug, la respuesta debe incluir estrictamente:
 - CAUSA 4: getHotspotsConfig solo manejaba tipo==='lote', ignorando 'terreno', 'acceso' y 'referencia'. importBaseDatosLotes en Ferrari tenia el mismo filtro incompleto.
 - FIX: Doble guard en onTap (PinEngine.activeTool + arq2Tool==='smart-pin-v2'). PinEngine.deactivate() en TODAS las copias de arq2_setTool y arq2_toggleArquitecto2. Alias window.MotorFerrari = window.arquitecto3D. Extender filtros de tipo en getHotspotsConfig y importBaseDatosLotes.
 - REGLA: Al cerrar el panel Arquitecto, limpiar TODAS las clases CSS de edicion (pin-v2-active, arq2-pin-active, calle-mode-active, eraser-mode-active) para dejar vista previa limpia del cliente.
+
+---
+
+## PROYECTO KPRANOKILLER — Roadmap Oficial
+
+### Vision
+KpranoKiller es el motor de herramientas interactivas premium para el visor 360. Permite al administrador disenar calles, lotes, senales, capsulas y smart points directamente sobre la foto panoramica. El espectador ve el resultado final y puede interactuar con los elementos. Todo queda anclado matematicamente a la foto mediante proyeccion gnomonico (getCam).
+
+### Arquitectura KpranoKiller
+- js/modules/v-kpranokiller.js  -> Motor maestro autonomo (panel FAB + Alt+A + herramientas)
+- js/modules/v-svg-render.js    -> Renderiza todos los elementos sobre el SVG superpuesto
+- js/modules/v-arq2-events.js   -> Captura clicks del panorama y despacha a herramientas
+- js/modules/v-arquitecto2.js   -> Motor arq2: lotes, calles, costura, fila-variable
+- js/modules/v-state-manager.js -> Persistencia: allDrawnLines -> JSON -> Cloud
+- css/viewer.css                -> Todo el CSS de UI: panel KPK, capsulas, senales, HUD
+
+### REGLA CRITICA: Hotkeys y Listeners
+- NUNCA poner listeners de teclado dentro de arq2_setup() porque hay DOS versiones
+  (v-arq2-events.js y v-arquitecto2.js) y la segunda sobreescribe a la primera.
+- SIEMPRE registrar listeners globales en DOMContentLoaded de v-kpranokiller.js.
+- El FAB (#kpk-fab) es el punto de entrada garantizado. Siempre visible en desktop.
+
+### REGLA CRITICA: Tipos en allDrawnLines
+- Todo elemento nuevo debe pasar el filtro en v-state-manager.js applySnapshot().
+- Tipos registrados: calle-*, lote-*, franja*, costura, fila-variable-lote, kprano-capsule.
+- Al agregar nuevo tipo, SIEMPRE extender el filtro inmediatamente.
+
+### REGLA CRITICA: DOM en SVG foreignObject
+- NUNCA usar innerHTML dentro de un foreignObject SVG.
+- SIEMPRE usar document.createElementNS('http://www.w3.org/1999/xhtml', 'div').
+
+### Fases de Desarrollo
+
+#### FASE 1 - Infraestructura Base - COMPLETADA
+- Motor gnomónico de renderizado SVG
+- Panel KpranoKiller con FAB + Alt+A funcional
+- Herramientas: Lote, Calle, Auto, Hilera, Costura, Borrar
+- Capsula KpranoKiller basica (ancla a foto, se guarda, cross-browser)
+- Fix fullscreen (scrollbars eliminados, font-family reparado)
+
+#### FASE 2 - Editor de Capsulas y Smart Points - SIGUIENTE
+- Click en capsula -> panel lateral de edicion (titulo, subtitulo, icono, color, link, precio)
+- Tipos de Smart Point: location / info / precio / 360 / galeria / alerta
+- Cada tipo con icono SVG monolineal unico y color de acento propio
+- Eliminar capsula con boton en panel editor
+
+#### FASE 3 - Senales de Terreno
+- Marcadores de orientacion norte, acceso vehicular, servicios (agua, luz, gas)
+- Iconos SVG especializados anclados al suelo panoramico
+- Editor inline: tipo de senal, texto descriptivo
+
+#### FASE 4 - Etiquetas de Texto 3D
+- Texto flotante (ej: Sector A, Area Verde, Acceso Principal)
+- Tipografia, tamano y color configurables desde el panel
+
+#### FASE 5 - Editor de Lote Premium
+- Click en lote en modo diseno -> panel KPK muestra datos del lote
+- Reemplaza el HUD actual con experiencia mas rica
+
+#### FASE 6 - Modo Espectador Premium
+- Smart Points con animaciones de entrada escalonadas
+- Click en capsula -> modal premium con contenido rico
+
+### Estado Actual del Motor
+- allDrawnLines: fuente de verdad unica para todos los elementos
+- syncSVGElements(): crea los nodos DOM de cada elemento nuevo
+- updateSVGPaths(): reposiciona todos los elementos en cada frame (60 FPS)
+- GlobalCloudSave(): serializa allDrawnLines y guarda en GitHub via API
