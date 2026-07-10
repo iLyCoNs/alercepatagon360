@@ -243,7 +243,29 @@ function arq2_syncOrganicLotePaths(lineData, cacheObj, getCamFn, cx, cySc, f) {
         paths[3].setAttribute('d', shared.dSolida.trim() || 'M -999 -999');
         arq2_applyCosturaEstiloToPath(paths[3], 'solida');
     }
+
+    // ── Fusión Divider: línea punteada interna para lotes fusionados ──────────
+    if (lineData.fusionDivider && lineData.fusionDivider.length >= 2 && cacheObj.gNode) {
+        let divPath = cacheObj.gNode.querySelector('.kpk-fusion-divider');
+        if (!divPath) {
+            divPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            divPath.setAttribute('class', 'kpk-fusion-divider');
+            cacheObj.gNode.appendChild(divPath);
+        }
+        const pts = lineData.fusionDivider;
+        let dDiv = '';
+        let visible = true;
+        for (let i = 0; i < pts.length; i++) {
+            const cam = getCamFn(pts[i][0], pts[i][1]);
+            if (!cam || cam.z <= 0.0001) { visible = false; break; }
+            const sx = cx + (cam.x / cam.z) * f;
+            const sy = cySc - (cam.y / cam.z) * f;
+            dDiv += (i === 0 ? 'M ' : 'L ') + sx + ',' + sy + ' ';
+        }
+        divPath.setAttribute('d', visible ? dDiv.trim() : 'M -999 -999');
+    }
 }
+
 
 function arq2_applyOrganicPathAttrs(pathEl, role) {
     if (!pathEl) return;

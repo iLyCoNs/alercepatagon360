@@ -41,6 +41,7 @@
         'fila-variable':     'Dibuja el contorno de toda la hilera. El modal divide proporcionalmente.',
         'kprano-capsule':    'Clic en cualquier punto de la foto para anclar una Capsula 3D.',
         'costura':           'Dibuja un lote que comparte borde con otro existente.',
+        'editar-vertices':   'Arrastra los puntos blancos para remodeltar lotes. Toca 2 lotes para fusionarlos.',
         'limpiar-todo':      'Precaucion: Elimina todos los dibujos de la foto.'
     };
 
@@ -52,13 +53,15 @@
         'fila-variable':     '<rect x="2" y="7" width="20" height="10" rx="1"/><line x1="8" y1="7" x2="8" y2="17"/><line x1="14" y1="7" x2="14" y2="17"/>',
         'kprano-capsule':    '<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>',
         'costura':           '<path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>',
+        'editar-vertices':   '<circle cx="5" cy="5" r="2"/><circle cx="19" cy="5" r="2"/><circle cx="19" cy="19" r="2"/><circle cx="5" cy="19" r="2"/><path d="M5 7v10M7 5h10M7 19h10M19 7v10" stroke-dasharray="2 2"/>',
         'limpiar-todo':      '<path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/>'
     };
 
     var LABELS = {
         'lote-libre': 'Lapiz', 'calle-curva-arq2': 'Calle', 'eraser': 'Borrar',
         'relleno-auto': 'Auto', 'fila-variable': 'Hilera',
-        'kprano-capsule': 'Capsula', 'costura': 'Costura', 'limpiar-todo': 'Limpiar Todo'
+        'kprano-capsule': 'Capsula', 'costura': 'Costura',
+        'editar-vertices': 'Editar', 'limpiar-todo': 'Limpiar Todo'
     };
 
     function svgIcon(id) {
@@ -96,7 +99,8 @@
         panel.appendChild(makeGrid([{ id: 'kprano-capsule', extra: 'kpk-btn-blue' }]));
         panel.appendChild(makeGroupLabel('Edicion'));
         panel.appendChild(makeGrid([
-            { id: 'eraser', extra: 'kpk-btn-red' }, { id: 'costura' }
+            { id: 'eraser', extra: 'kpk-btn-red' }, { id: 'costura' },
+            { id: 'editar-vertices', extra: 'kpk-btn-blue' }
         ]));
         panel.appendChild(makeGroupLabel('Peligro'));
         panel.appendChild(makeGrid([
@@ -173,6 +177,10 @@
         if (typeof arq2_toggleArquitecto2 === 'function') {
             try { arq2_toggleArquitecto2(false); } catch (e) {}
         }
+        // Desactivar vertex editor al cerrar el panel
+        if (window.VertexEditor) {
+            try { window.VertexEditor.deactivate(); } catch (e) {}
+        }
         window.isArquitecto2Active = false;
         document.body.classList.remove('arq2-active', 'kpk-edit');
     }
@@ -232,6 +240,15 @@
         window.arq2Tool = tool;
         document.body.classList.toggle('eraser-mode-active', tool === 'eraser');
         document.body.classList.toggle('calle-mode-active', tool === 'calle-curva-arq2');
+
+        // Vertex Editor: activar si la herramienta es editar-vertices, desactivar en cualquier otra
+        if (window.VertexEditor) {
+            if (tool === 'editar-vertices') {
+                window.VertexEditor.activate();
+            } else {
+                window.VertexEditor.deactivate();
+            }
+        }
 
         console.log('[KPK] Herramienta:', tool, '| isArquitecto2Active:', window.isArquitecto2Active);
     }

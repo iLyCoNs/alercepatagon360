@@ -519,4 +519,9 @@ function updateSVGPaths() {
     }
 
     arq2_updateDemoLayer();
+
+    // Vertex Editor: renderizar handles arrastrables sobre lotes guardados
+    if (window.VertexEditor && window.VertexEditor.isActive()) {
+        window.VertexEditor.renderHandles(getCam, cx, cy_screen, f);
+    }
 }
