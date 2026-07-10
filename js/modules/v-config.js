@@ -43,7 +43,7 @@ function setupAdminPostMessageBridge() {
 setupAdminPostMessageBridge();
 
 var ConfigProyecto = { titulo: "PROYECTO INMOBILIARIO", subtitulo: "Masterplan Interactivo 360°" };
-var OrigenDrone = null, NorteOffset = 0, BaseDatosLotes = [], PuntosHorizonte = [], allDrawnLines = [], UF_Online = 0;
+var OrigenDrone = null, NorteOffset = 0, allDrawnLines = [], UF_Online = 0;
 const DOMCache = { paths: {}, markers: {}, viewport: { w: window.innerWidth, h: window.innerHeight, left: 0, top: 0 } }; 
 let isHeatmapActive = false, isWebGLSupported = true, viewerGpuReady = true, smartInitAttempts = 0, panoramaEventsBound = false, pannellumIntroBootstrapped = false, svgFrameCounter = 0;
 function isTouchDevice() { return (navigator.maxTouchPoints || 0) > 0 || ('ontouchstart' in window); }
@@ -254,22 +254,7 @@ async function calcularRutaParaPin(punto, opts) {
     return est;
 }
 async function syncRutasDesdeOrigen(opts) {
-    opts = opts || {};
-    if (!OrigenDrone?.lat || !OrigenDrone?.lng || !PuntosHorizonte?.length) return false;
-    let updated = false;
-    for (const punto of PuntosHorizonte) {
-        if (punto.tipo !== 'ruta' && punto.tipo !== 'horizonte') continue;
-        const dest = parseCoordenadasDestino(punto.coordenadasDestino);
-        if (!dest) continue;
-        const vacio = !punto.distancia || /^0(\.0)?(\s*KM)?$/i.test(String(punto.distancia).trim()) || !punto.tiempo || /^0(\s*MIN)?$/i.test(String(punto.tiempo).trim());
-        const recalc = punto.tipo === 'ruta' || opts.refreshAll || (opts.refreshEmptyHorizonte !== false && vacio);
-        if (!recalc) continue;
-        const est = await calcularRutaParaPin(punto);
-        if (est) updated = true;
-        await new Promise(r => setTimeout(r, 180));
-    }
-    if (updated) { refreshAllHotspots(); saveToLocal(); }
-    return updated;
+    return false;
 }
 
 function applyProjectConfig() {
@@ -291,8 +276,8 @@ function applyProjectConfig() {
     initMasterplanPremiumFromData();
 }
 
-function saveToLocal() { localStorage.setItem(FRESIA_CFG.autosaveKey, JSON.stringify({ configProyecto: ConfigProyecto, origen: OrigenDrone, norte: NorteOffset, lotes: BaseDatosLotes, horizontes: PuntosHorizonte, trazos: allDrawnLines })); }
-function loadFromLocal() { const savedData = localStorage.getItem(FRESIA_CFG.autosaveKey); if (savedData) { try { const parsed = JSON.parse(savedData); if((parsed.lotes && parsed.lotes.length > 0) || (parsed.trazos && parsed.trazos.length > 0)) { ConfigProyecto = parsed.configProyecto || ConfigProyecto; OrigenDrone = parsed.origen || OrigenDrone; NorteOffset = parsed.norte || 0; BaseDatosLotes = parsed.lotes || BaseDatosLotes; PuntosHorizonte = parsed.horizontes || PuntosHorizonte; allDrawnLines = parsed.trazos || allDrawnLines; } } catch(e) {} } }
+function saveToLocal() { localStorage.setItem(FRESIA_CFG.autosaveKey, JSON.stringify({ configProyecto: ConfigProyecto, origen: OrigenDrone, norte: NorteOffset, trazos: allDrawnLines })); }
+function loadFromLocal() { const savedData = localStorage.getItem(FRESIA_CFG.autosaveKey); if (savedData) { try { const parsed = JSON.parse(savedData); if((parsed.trazos && parsed.trazos.length > 0)) { ConfigProyecto = parsed.configProyecto || ConfigProyecto; OrigenDrone = parsed.origen || OrigenDrone; NorteOffset = parsed.norte || 0; allDrawnLines = parsed.trazos || allDrawnLines; } } catch(e) {} } }
 async function fetchValorUFOnline() { try { const response = await fetch('https://mindicador.cl/api/uf', { cache: 'no-store' }); if (response.ok) { const data = await response.json(); if(data && data.serie && data.serie.length > 0) { UF_Online = data.serie[0].valor; return; } } } catch (error) {} }
 function arq2_migrateCallesGeometry() {
   for (const line of allDrawnLines) {
@@ -365,8 +350,7 @@ async function fetchMasterData() {
                 if (data.entidades) {
                     window.StateManager.applySnapshot(data);
                 } else {
-                    BaseDatosLotes = data.lotes || [];
-                    PuntosHorizonte = data.horizontes || [];
+                    // legacy support for BaseDatosLotes deleted
                     allDrawnLines = data.trazos || [];
                 }
             }
@@ -787,7 +771,7 @@ function buildCloudPayload() {
         return snapshot;
     }
     // Fallback legacy
-    const payload = { configProyecto: ConfigProyecto, origen: OrigenDrone, norte: NorteOffset, lotes: BaseDatosLotes, horizontes: PuntosHorizonte, trazos: allDrawnLines };
+    const payload = { configProyecto: ConfigProyecto, origen: OrigenDrone, norte: NorteOffset, trazos: allDrawnLines };
     if (FRESIA_CFG.payloadIncludeVista) payload.vista = FRESIA_CFG.vista;
     return payload;
 }
@@ -932,6 +916,6 @@ window.GlobalCloudSave = async function() {
 window.saveToLocal = function() {
     safeSetStorage(FRESIA_CFG.autosaveKey, JSON.stringify({
         configProyecto: ConfigProyecto, origen: OrigenDrone, norte: NorteOffset,
-        lotes: BaseDatosLotes, horizontes: PuntosHorizonte, trazos: allDrawnLines
+        trazos: allDrawnLines
     }));
 }

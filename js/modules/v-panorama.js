@@ -4,7 +4,7 @@ function setupPegmanEngine() {
     const pegmanBtn = document.getElementById('js-pegman'), ghost = document.getElementById('pegman-ghost'); if(!pegmanBtn || !ghost) return;
     const startDrag = (e) => { e.preventDefault(); e.stopPropagation(); isPegmanDragging = true; document.body.classList.add('pegman-dragging'); let mock = getMockEvent(e); pegmanLastX = mock.clientX; pegmanLastY = mock.clientY; ghost.style.left = (pegmanLastX - 7) + 'px'; ghost.style.top = (pegmanLastY - 2) + 'px'; ghost.classList.add('active'); pegmanTilt = 0; pegmanTargetTilt = 0; cancelAnimationFrame(pegmanAnimFrame); animatePegmanPendulum(); };
     const doDrag = (e) => { if(!isPegmanDragging) return; e.preventDefault(); let mock = getMockEvent(e); if(mock.clientX) { let deltaX = mock.clientX - pegmanLastX; pegmanTargetTilt = deltaX * 1.5; if(pegmanTargetTilt > 45) pegmanTargetTilt = 45; if(pegmanTargetTilt < -45) pegmanTargetTilt = -45; pegmanLastX = mock.clientX; pegmanLastY = mock.clientY; } ghost.style.left = (pegmanLastX - 7) + 'px'; ghost.style.top = (pegmanLastY - 2) + 'px'; };
-    const endDrag = (e) => { if(!isPegmanDragging) return; isPegmanDragging = false; document.body.classList.remove('pegman-dragging'); ghost.classList.remove('active'); cancelAnimationFrame(pegmanAnimFrame); if(!visor360) return; let mockEvent = { clientX: pegmanLastX, clientY: pegmanLastY }; let coords = visor360.mouseEventToCoords(mockEvent); if(coords && !isNaN(coords[0])) { let p = coords[0], y = coords[1]; let closestUrl = null; let minDist = 15; BaseDatosLotes.forEach(l => { if(l.videoUrl) { let d = Math.sqrt(Math.pow(l.pitch - p, 2) + Math.pow(l.yaw - y, 2)); if(d < minDist) { minDist = d; closestUrl = l.videoUrl; } } if(l.tipo === 'vista360' && l.url) { let d = Math.sqrt(Math.pow(l.pitch - p, 2) + Math.pow(l.yaw - y, 2)); if(d < minDist) { minDist = d; closestUrl = l.url; } } }); if(closestUrl) { openInAppViewer(null, closestUrl); } else { const fabContainer = document.getElementById('js-pegman'); fabContainer.classList.add('shake'); setTimeout(() => fabContainer.classList.remove('shake'), 400); } } };
+    const endDrag = (e) => { if(!isPegmanDragging) return; isPegmanDragging = false; document.body.classList.remove('pegman-dragging'); ghost.classList.remove('active'); cancelAnimationFrame(pegmanAnimFrame); if(!visor360) return; let mockEvent = { clientX: pegmanLastX, clientY: pegmanLastY }; let coords = visor360.mouseEventToCoords(mockEvent); if(coords && !isNaN(coords[0])) { let p = coords[0], y = coords[1]; let closestUrl = null; let minDist = 15; (window.allDrawnLines||[]).forEach(l => { if(l.videoUrl && l.puntos && l.puntos.length > 0) { let cp = 0, cy = 0; l.puntos.forEach(pt => { cp += pt.pitch; cy += pt.yaw; }); cp /= l.puntos.length; cy /= l.puntos.length; let d = Math.sqrt(Math.pow(cp - p, 2) + Math.pow(cy - y, 2)); if(d < minDist) { minDist = d; closestUrl = l.videoUrl; } } }); if(closestUrl) { openInAppViewer(null, closestUrl); } else { const fabContainer = document.getElementById('js-pegman'); fabContainer.classList.add('shake'); setTimeout(() => fabContainer.classList.remove('shake'), 400); } } };
     pegmanBtn.addEventListener('mousedown', startDrag); pegmanBtn.addEventListener('touchstart', startDrag, {passive: false}); window.addEventListener('mousemove', doDrag); window.addEventListener('touchmove', doDrag, {passive: false}); window.addEventListener('mouseup', endDrag); window.addEventListener('touchend', endDrag);
 }
 
@@ -84,7 +84,7 @@ function runPannellumIntroBootstrap() {
             
             setTimeout(() => {
                 if (targetLoteId) { 
-                    const searchStr = targetLoteId.toLowerCase().replace(/\s/g, ''); const targetPin = BaseDatosLotes.find( (l) => (l.titulo || '').toLowerCase().replace(/\s/g, '').includes(searchStr) || (l.numero || '') === targetLoteId, ); if (targetPin) visor360.lookAt(targetPin.pitch, targetPin.yaw, 70, 3000); else visor360.lookAt(5, 15, 100, 3000); 
+                    const searchStr = targetLoteId.toLowerCase().replace(/\s/g, ''); const targetPin = (window.allDrawnLines||[]).find( (l) => (l.titulo || '').toLowerCase().replace(/\s/g, '').includes(searchStr) || (l.arq2Numero || '') === targetLoteId || (l.franjaNumero || '') === targetLoteId ); if (targetPin && targetPin.puntos && targetPin.puntos.length > 0) { let cp=0, cy=0; targetPin.puntos.forEach(pt=>{cp+=pt.pitch; cy+=pt.yaw;}); cp/=targetPin.puntos.length; cy/=targetPin.puntos.length; visor360.lookAt(cp, cy, 70, 3000); } else visor360.lookAt(5, 15, 100, 3000); 
                     setTimeout(() => { revealLoteoOverlay(); }, 3000);
                 } else {
                     const customCinematic = (FRESIA_CFG.vista === 'suelo') ? ConfigProyecto.vueloCinematicoSuelo : ConfigProyecto.vueloCinematico;
@@ -109,9 +109,10 @@ function runPannellumIntroBootstrap() {
                             visor360.lookAt(0, NorteOffset + 50, 95, 3000);
                             setTimeout(() => {
                                 // Punto 3: Buscar "TinyHouse" y enfocar
-                                const tinyPin = BaseDatosLotes.find(p => p.titulo && p.titulo.toLowerCase().includes('tinyhouse')) || PuntosHorizonte.find(p => p.titulo && p.titulo.toLowerCase().includes('tinyhouse'));
-                                if (tinyPin) {
-                                    visor360.lookAt(tinyPin.pitch, tinyPin.yaw, 80, 3500);
+                                const tinyPin = (window.allDrawnLines||[]).find(p => p.titulo && p.titulo.toLowerCase().includes('tinyhouse'));
+                                if (tinyPin && tinyPin.puntos && tinyPin.puntos.length > 0) {
+                                    let cp=0, cy=0; tinyPin.puntos.forEach(pt=>{cp+=pt.pitch; cy+=pt.yaw;}); cp/=tinyPin.puntos.length; cy/=tinyPin.puntos.length;
+                                    visor360.lookAt(cp, cy, 80, 3500);
                                 } else {
                                     visor360.lookAt(5, NorteOffset, 85, 3500); // Fallback al Norte si no existe
                                 }

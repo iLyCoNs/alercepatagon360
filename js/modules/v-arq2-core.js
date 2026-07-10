@@ -387,39 +387,102 @@ function arq2_refreshFeedbackVisuals(mock) {
     } else if (magnet) { magnet.style.display = 'none'; magnet.classList.remove('arq2-snap-pulse'); }
     arq2_updateLiveCounter(mock);
     arq2_updatePanelStep();
-    const pts = arq2_getActiveDrawPoints();
-    if (mock && pts.length >= 3 && visor360) {
-        const coords = visor360.mouseEventToCoords(mock);
-        const near = coords && isNearPolygonOriginPY(coords[0], coords[1], pts[0]) && canTriggerPolygonAutoClose();
-        updateCloseOriginHighlight(!!near);
-    } else updateCloseOriginHighlight(false);
-}
-window.arq2_recalcAllPolygonStatuses = function() {
-    if (!window.allDrawnLines || !window.BaseDatosLotes || typeof window.pointInPolygonPY !== 'function') return;
-    
-    const lotePins = window.BaseDatosLotes.filter(p => p.tipo === 'lote' && p.pitch != null && p.yaw != null);
-    
-    window.allDrawnLines.forEach(line => {
-        if (line.tipo === 'lote-organico' || line.tipo === 'fila-variable-lote' || line.tipo === 'area-invisible' || line.tipo === 'solida') {
-            if (!line.puntos || line.puntos.length < 3) return;
-            
-            let foundPin = false;
-            for (let i = 0; i < lotePins.length; i++) {
-                const pin = lotePins[i];
-                if (window.pointInPolygonPY(pin.pitch, pin.yaw, line.puntos)) {
-                    line.loteStatus = pin.status || 'disponible';
-                    foundPin = true;
-                    break;
-                }
-            }
-            if (!foundPin) {
-                line.loteStatus = 'disponible';
-            }
-            
-            const gNode = document.getElementById(line.id);
-            if (gNode) {
-                gNode.setAttribute('data-status', line.loteStatus);
-            }
+    const costuraToggle = document.getElementById('arq2-costura-toggle-selected');
+    const demoReplay = document.getElementById('arq2-fila-demo-replay');
+    if (costuraRow) costuraRow.style.display = toolKey === 'costura' ? 'flex' : 'none';
+    if (costuraToggle) {
+        const sel = arq2SelectedLineId && allDrawnLines.find(l => l.id === arq2SelectedLineId);
+        // Show toggle for any costura lot (even without sharedSegs, the new rendering uses costuraEstilo directly)
+        const showSel = toolKey === 'costura' && sel && (sel.costuraEstilo || sel.costuraStyle || sel.sharedSegs?.length);
+        costuraToggle.style.display = showSel ? 'block' : 'none';
+        if (showSel) {
+            const cur = sel.costuraEstilo || sel.costuraStyle || sel.sharedSegStyles?.[sel.sharedSegs?.[0]] || 'punteada';
+            costuraToggle.textContent = cur === 'punteada' ? 'Cambiar a sólida' : 'Cambiar a punteada';
         }
+    }
+    if (demoReplay) demoReplay.style.display = toolKey === 'fila-variable' ? 'block' : 'none';
+    if (filaDesc) filaDesc.style.display = toolKey === 'fila-variable' ? 'block' : 'none';
+    // Fila sobre Calle panel
+    const filaCalleRow = document.getElementById('arq2-fila-calle-row');
+    if (filaCalleRow) {
+        filaCalleRow.style.display = toolKey === 'fila-calle' ? 'block' : 'none';
+    }
+    if (toolKey === 'fila-calle') {
+        const confirmBtn = document.getElementById('arq2-fila-calle-confirm');
+        const cancelBtn = document.getElementById('arq2-fila-calle-cancel');
+        const hasSelection = !!(arq2FilaCalle?.borderPts);
+        if (confirmBtn) confirmBtn.style.display = hasSelection ? 'block' : 'none';
+        if (cancelBtn) cancelBtn.style.display = hasSelection ? 'block' : 'none';
+    }
+    const calleRow = document.getElementById('arq2-calle-curva-row');
+    if (calleRow) calleRow.style.display = toolKey === 'calle-curva-arq2' ? 'flex' : 'none';
+    const smoothRow2 = document.getElementById('arq2-smooth-row');
+    if (smoothRow2) smoothRow2.style.display = (toolKey === 'lote-libre' || toolKey === 'costura' || toolKey === 'relleno-auto') ? 'flex' : 'none';
+    document.getElementById('arq2-costura-punteada')?.classList.toggle('active', arq2CosturaStyle === 'punteada');
+    document.getElementById('arq2-costura-solida')?.classList.toggle('active', arq2CosturaStyle === 'solida');
+    if (sem) {
+        sem.classList.remove('arq2-sem-green', 'arq2-sem-yellow', 'arq2-sem-red');
+        if (arq2InvasionActive) {
+            sem.textContent = 'Cruzando calle o límite, corrige el punto';
+            sem.classList.add('arq2-sem-red');
+        } else if (arq2CosturaSnap && isArquitecto2Active) {
+            sem.textContent = 'Imán activo — puedes encadenar a forma existente';
+            sem.classList.add('arq2-sem-yellow');
+        } else {
+            sem.textContent = 'Trazo limpio';
+            sem.classList.add('arq2-sem-green');
+        }
+    }
+}
+function arq2_updateLiveCounter(mock) {
+    const el = document.getElementById('arq2-live-counter');
+    const tip = document.getElementById('arq2-invasion-tooltip');
+    if (!el || !mock) return;
+    const pts = arq2_getActiveDrawPoints();
+    if (pts.length === 0) { el.style.display = 'none'; return; }
+    el.style.display = 'block';
+    el.style.left = mock.clientX + 'px';
+    el.style.top = mock.clientY + 'px';
+    if (arq2Tool === 'fila-variable' && document.getElementById('franja-lotes-modal')?.classList.contains('open')) {
+        const weights = getFranjaModalWeights();
+        const total = weights.reduce((a, b) => a + b, 0);
+        const activeIdx = Math.min(weights.length - 1, Math.max(0, document.querySelector('.franja-weight-input:focus') ? Array.from(document.querySelectorAll('.franja-weight-input')).indexOf(document.activeElement) : 0));
+        const current = weights[activeIdx] || 0;
+        el.textContent = 'Lote actual: ' + current + ' m² | Total hilera: ' + total + ' m²';
+    } else {
+        el.textContent = 'Vértices: ' + pts.length + (arq2Tool === 'fila-variable' ? ' (mín. 4)' : '');
+    }
+    if (tip) {
+        if (arq2InvasionActive) {
+            tip.style.display = 'block';
+            tip.style.left = mock.clientX + 'px';
+            tip.style.top = mock.clientY + 'px';
+        } else tip.style.display = 'none';
+    }
+}
+function arq2_refreshVertexMarkers(ctx) {
+    const vertsG = document.getElementById('arq2-vertices');
+    if (!vertsG || !ctx) return;
+    const ns = 'http://www.w3.org/2000/svg';
+    const { getCam, cx, cy_screen, f } = ctx;
+    const points = arq2_getActiveDrawPoints();
+    vertsG.innerHTML = '';
+    points.forEach((pt, idx) => {
+        const c = getCam(pt[0], pt[1]);
+        if (c.z <= 0.0001) return;
+        const x = cx + (c.x / c.z) * f, y = cy_screen - (c.y / c.z) * f;
+        const circle = document.createElementNS(ns, 'circle');
+        circle.setAttribute('cx', x);
+        circle.setAttribute('cy', y);
+        if (idx === points.length - 1) {
+            circle.setAttribute('r', '6');
+            circle.classList.add('arq2-vertex-pulse');
+        } else {
+            circle.setAttribute('r', '4');
+            circle.setAttribute('fill', '#10b981');
+            circle.setAttribute('stroke', '#ffffff');
+            circle.setAttribute('stroke-width', '1');
+        }
+        vertsG.appendChild(circle);
     });
 };

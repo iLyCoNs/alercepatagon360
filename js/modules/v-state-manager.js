@@ -15,14 +15,10 @@ window.StateManager = {
             norte: window.NorteOffset,
             // Consolidamos entidades en un solo array
             entidades: [
-                ...(window.allDrawnLines || []),
-                ...(window.BaseDatosLotes || []),
-                ...(window.PuntosHorizonte || [])
+                ...(window.allDrawnLines || [])
             ],
             // Compatibilidad legacy
-            trazos: window.allDrawnLines || [],
-            lotes: window.BaseDatosLotes || [],
-            horizontes: window.PuntosHorizonte || []
+            trazos: window.allDrawnLines || []
         };
     },
 
@@ -40,16 +36,8 @@ window.StateManager = {
                 if (!e.tipo) return true; // entidades sin tipo van a trazos por defecto
                 return e.tipo.startsWith('calle') || e.tipo.startsWith('lote-') || e.tipo.startsWith('franja') || e.tipo === 'costura' || e.tipo === 'fila-variable-lote';
             });
-            window.BaseDatosLotes = snapshot.entidades.filter(e => 
-                e.tipo && ['lote', 'acceso', 'referencia', 'vista360', 'casa360', 'terreno'].includes(e.tipo)
-            );
-            window.PuntosHorizonte = snapshot.entidades.filter(e => 
-                e.tipo && ['horizonte', 'ruta', 'drone'].includes(e.tipo)
-            );
         } else {
             // Compatibilidad V1
-            window.BaseDatosLotes = snapshot.lotes || window.BaseDatosLotes;
-            window.PuntosHorizonte = snapshot.horizontes || window.PuntosHorizonte;
             window.allDrawnLines = snapshot.trazos || window.allDrawnLines;
         }
         
@@ -68,12 +56,9 @@ window.StateManager = {
         });
     },
 
-    // Normalización de esquema para Pines
+    // Normalización de esquema para Pines - Obsoleto
     normalizePines() {
-        const pines = [...(window.BaseDatosLotes || []), ...(window.PuntosHorizonte || [])];
-        pines.forEach(p => {
-            if (!p.id) p.id = 'pin_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
-        });
+        return;
     },
 
     // Nueva persistencia Local unificada

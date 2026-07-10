@@ -128,23 +128,12 @@ function applyLineaPinesAlign() {
                 }
             }
         }
-
         if (pinPt) {
-            const numero = lot.franjaNumero;
-            const pitch = parseFloat(pinPt[0].toFixed(3));
-            const yaw = parseFloat(pinPt[1].toFixed(3));
-            let pin = findPinForFranjaNumero(numero);
-            if (pin) { 
-                pin.pitch = pitch; pin.yaw = yaw; updated++; 
-            } else {
-                BaseDatosLotes.push({ id: 'lp_' + lot.franjaGrupo + '_' + (lot.franjaIdx ?? 0) + '_' + Date.now(), tipo: 'lote', titulo: numero, numero: numero, status: defaultStatus, pitch, yaw });
-                created++;
-            }
+            // (Legacy) Pines obsoletos eliminados
         }
     });
 
     if (updated === 0 && created === 0) { 
-        alert('⚠️ La línea no cruzó ningún lote de franja.\n\nAjusta el trazo para que atraviese la hilera de lotes.'); 
         return false; 
     }
     
