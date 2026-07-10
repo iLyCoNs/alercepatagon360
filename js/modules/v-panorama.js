@@ -603,9 +603,12 @@ async function initPannellum() {
                 if (intersects.length > 0) {
                     const p = intersects[0].point;
                     const radius = 500;
-                    const pitch = Math.asin(p.y / radius) * (180 / Math.PI);
+                    // Bug 2: Evitar NaN si abs(p.y/radius) excede 1.0 por flotantes
+                    const ratioY = Math.max(-1, Math.min(1, p.y / radius));
+                    const pitch = Math.asin(ratioY) * (180 / Math.PI);
                     const yaw = Math.atan2(p.x, -p.z) * (180 / Math.PI);
-                    return [-pitch, -yaw];
+                    // Bug 1: Devolver pitch directo (no invertido) y yaw invertido (para contrarrestar el scale -X del renderer 3D)
+                    return [pitch, -yaw];
                 }
             }
             return [threePitch, threeYaw];
@@ -750,6 +753,10 @@ async function initPannellum() {
     });
     window.addEventListener('touchmove', (e) => {
         if (window.draggingVertex || window.draggingCalleMove || window.draggingFranjaDiv || (window.arquitecto3D && window.arquitecto3D.draggingInfo)) return;
+        // Bug 5: Prevenir scroll nativo de la página al arrastrar para dibujar
+        if (e.cancelable && (window.isArquitecto2Active || window.isDevModeDrawActive)) {
+            e.preventDefault();
+        }
         if (e.touches.length === 2 && threeLastPinchDist !== -1) {
             const dx = e.touches[0].clientX - e.touches[1].clientX;
             const dy = e.touches[0].clientY - e.touches[1].clientY;

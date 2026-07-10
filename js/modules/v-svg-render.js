@@ -229,7 +229,7 @@ function syncSVGElements() {
                     }
                     bindSvgEraser(gNode, line.id);
                     if (pBase) bindSvgEraser(pBase, line.id);
-                    DOMCache.paths[line.id] = { gNode: gNode, base: Array.from(gNode.querySelectorAll('path')) };
+                    DOMCache.paths[line.id] = { gNode: gNode, base: Array.from(gNode.querySelectorAll('path:not(.kpk-guide-line)')) };
                 }
             }
         }
@@ -390,6 +390,8 @@ function updateSVGPaths() {
                     while (circles.length < pts.length) {
                         let c = document.createElementNS("http://www.w3.org/2000/svg", "circle");
                         c.setAttribute("class", "kpk-vertex");
+                        // Bug 3: Fallback duro de radio nativo SVG porque WebKit/Safari ignoran "r" en CSS
+                        c.setAttribute("r", "3.5");
                         parent.appendChild(c);
                         circles = parent.querySelectorAll('.kpk-vertex');
                     }

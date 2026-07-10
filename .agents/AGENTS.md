@@ -58,6 +58,13 @@ Por cada tarea o bug, la respuesta debe incluir estrictamente:
 - FIX: Doble guard en onTap (PinEngine.activeTool + arq2Tool==='smart-pin-v2'). PinEngine.deactivate() en TODAS las copias de arq2_setTool y arq2_toggleArquitecto2. Alias window.MotorFerrari = window.arquitecto3D. Extender filtros de tipo en getHotspotsConfig y importBaseDatosLotes.
 - REGLA: Al cerrar el panel Arquitecto, limpiar TODAS las clases CSS de edicion (pin-v2-active, arq2-pin-active, calle-mode-active, eraser-mode-active) para dejar vista previa limpia del cliente.
 
+## Leccion Historica - Vertices Invisibles Lote Libre (Sesion 170+)
+- CAUSA 1 (Inversion de Raycaster): Al migrar de Pannellum a Three.js, la esfera de proyeccion se invirtio con scale(-1,1,1). mouseEventToCoords devolvia [-pitch, -yaw], lo que provocaba que todos los clics se proyectaran en la antipoda matematica (detras de la camara) y fueran ocultados (cam.z <= 0.0001). FIX: Devolver [pitch, -yaw].
+- CAUSA 2 (NaN en los Polos): Math.asin(p.y / radius) fallaba y devolvia NaN si p.y superaba levemente el radio por imprecision de coma flotante. FIX: Clampear Math.min(1, Math.max(-1, p.y/radius)).
+- CAUSA 3 (Radio SVG Nulo): Safari/WebKit ignoran CSS 'r' en circulos SVG, dejandolos con radio 0. FIX: Fallback c.setAttribute('r', '3.5').
+- CAUSA 4 (Guia Fantasma Pisada): syncSVGElements usaba querySelectorAll('path') capturando tambien .kpk-guide-line y sobrescribiendolo con el path del perimetro. FIX: :not(.kpk-guide-line).
+- CAUSA 5 (Scroll Tactil): Al dibujar en dispositivos moviles, touchmove realizaba scroll de pagina abortando el trazo. FIX: e.preventDefault() en touchmove.
+
 ---
 
 ## PROYECTO KPRANOKILLER — Roadmap Oficial
