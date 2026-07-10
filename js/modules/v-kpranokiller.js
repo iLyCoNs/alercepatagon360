@@ -1,12 +1,37 @@
 // ================================================
-// KpranoKiller v3 — Motor de Herramientas
-// Estrategia directa: setea variables globales
-// del motor arq2 sin depender de arq2_toggleArquitecto2.
+// KpranoKiller v4 — Motor de Herramientas
+// FIX CRITICO: stubs para setupDevModes y togglePinsMode
+// que fueron eliminadas en la migración a Three.js.
+// Sin estas, arq2_setup() nunca se llama y el motor no inicia.
 // ================================================
 (function () {
 
+    // ── STUBS CRITICOS — deben ir ANTES que cualquier otra cosa ──
+    // setupDevModes fue eliminada al migrar de Pannellum a Three.js.
+    // La llamada en v-franja-curva.js:55 la necesita para no lanzar
+    // ReferenceError que aborta la cadena: setupDevModes → arq2_setup
+    if (typeof window.setupDevModes === 'undefined') {
+        window.setupDevModes = function () {
+            console.log('[KPK-stub] setupDevModes() — stub OK');
+        };
+    }
+    if (typeof window.togglePinsMode === 'undefined') {
+        window.togglePinsMode = function (active) {
+            console.log('[KPK-stub] togglePinsMode(' + active + ') — stub OK');
+            window.isDevModePinsActive = !!active;
+        };
+    }
+    if (typeof window.toggleDrawMode === 'undefined') {
+        window.toggleDrawMode = function (active) {
+            console.log('[KPK-stub] toggleDrawMode(' + active + ') — stub OK');
+            window.isDevModeDrawActive = !!active;
+        };
+    }
+
+    // ── Variables del panel ──────────────────────────────────────
     var isOpen = false;
     var activeTool = null;
+    var motorListo = false;
 
     var GUIDES = {
         'lote-libre':        'Clic en cada esquina del terreno. Acerca el ultimo punto al primero para cerrar, o presiona Enter.',
@@ -56,36 +81,27 @@
 
         var sb = document.createElement('div');
         sb.className = 'kpk-statusbar';
-        sb.innerHTML = '<span class="kpk-dot-status" id="kpk-dot-status"></span><span id="kpk-status-msg">Selecciona una herramienta</span>';
+        sb.innerHTML = '<span class="kpk-dot-status" id="kpk-dot-status"></span><span id="kpk-status-msg">Cargando motor...</span>';
         panel.appendChild(sb);
 
-        panel.appendChild(sep());
-
-        panel.appendChild(groupLabel('Diseno de Terreno'));
-        panel.appendChild(toolGrid([
-            { id: 'lote-libre' },
-            { id: 'calle-curva-arq2' },
-            { id: 'relleno-auto' },
-            { id: 'fila-variable' }
+        panel.appendChild(makeSep());
+        panel.appendChild(makeGroupLabel('Diseno de Terreno'));
+        panel.appendChild(makeGrid([
+            { id: 'lote-libre' }, { id: 'calle-curva-arq2' },
+            { id: 'relleno-auto' }, { id: 'fila-variable' }
         ]));
-
-        panel.appendChild(groupLabel('Smart Points'));
-        panel.appendChild(toolGrid([
-            { id: 'kprano-capsule', extra: 'kpk-btn-blue' }
+        panel.appendChild(makeGroupLabel('Smart Points'));
+        panel.appendChild(makeGrid([{ id: 'kprano-capsule', extra: 'kpk-btn-blue' }]));
+        panel.appendChild(makeGroupLabel('Edicion'));
+        panel.appendChild(makeGrid([
+            { id: 'eraser', extra: 'kpk-btn-red' }, { id: 'costura' }
         ]));
-
-        panel.appendChild(groupLabel('Edicion'));
-        panel.appendChild(toolGrid([
-            { id: 'eraser', extra: 'kpk-btn-red' },
-            { id: 'costura' }
-        ]));
-
-        panel.appendChild(sep());
+        panel.appendChild(makeSep());
 
         var guide = document.createElement('div');
         guide.className = 'kpk-guide';
         guide.id = 'kpk-guide';
-        guide.textContent = 'Elige una herramienta para comenzar a disenar sobre la foto 360.';
+        guide.textContent = 'Elige una herramienta para comenzar.';
         panel.appendChild(guide);
 
         var saveBtn = document.createElement('button');
@@ -95,34 +111,21 @@
             if (typeof GlobalCloudSave === 'function') GlobalCloudSave();
         });
         panel.appendChild(saveBtn);
-
         return panel;
     }
 
-    function sep() {
-        var d = document.createElement('div');
-        d.className = 'kpk-sep';
-        return d;
-    }
-
-    function groupLabel(text) {
-        var d = document.createElement('div');
-        d.className = 'kpk-group';
-        d.textContent = text;
-        return d;
-    }
-
-    function toolGrid(items) {
-        var grid = document.createElement('div');
-        grid.className = 'kpk-grid';
+    function makeSep() { var d = document.createElement('div'); d.className = 'kpk-sep'; return d; }
+    function makeGroupLabel(t) { var d = document.createElement('div'); d.className = 'kpk-group'; d.textContent = t; return d; }
+    function makeGrid(items) {
+        var g = document.createElement('div'); g.className = 'kpk-grid';
         items.forEach(function (item) {
-            var btn = document.createElement('button');
-            btn.className = 'kpk-btn' + (item.extra ? ' ' + item.extra : '');
-            btn.dataset.kpkTool = item.id;
-            btn.innerHTML = svgIcon(item.id) + '<span>' + (LABELS[item.id] || item.id) + '</span>';
-            grid.appendChild(btn);
+            var b = document.createElement('button');
+            b.className = 'kpk-btn' + (item.extra ? ' ' + item.extra : '');
+            b.dataset.kpkTool = item.id;
+            b.innerHTML = svgIcon(item.id) + '<span>' + (LABELS[item.id] || item.id) + '</span>';
+            g.appendChild(b);
         });
-        return grid;
+        return g;
     }
 
     function buildFAB() {
@@ -133,17 +136,30 @@
         return fab;
     }
 
-    // ── ACTIVACION DEL MOTOR ─────────────────────────────────────
-    // Estrategia directa: setear las variables globales que usa
-    // arq2_onPanoramaClick sin depender de arq2_toggleArquitecto2.
+    // ── ARRANCAR MOTOR ARQ2 ──────────────────────────────────────
+    function arrancarMotor() {
+        if (motorListo) return;
+        // Llamar arq2_setup si existe y no se llamó aún
+        if (typeof arq2_setup === 'function') {
+            try {
+                arq2_setup();
+                console.log('[KPK] arq2_setup() ejecutado correctamente');
+            } catch (e) {
+                console.warn('[KPK] arq2_setup() error:', e);
+            }
+        }
+        motorListo = true;
+        setStatus('idle', 'Motor listo. Selecciona herramienta.');
+    }
+
+    // ── ACTIVAR MODO EDICION ─────────────────────────────────────
     function activarMotor() {
-        // 1. Intentar via funcion oficial
+        arrancarMotor();
         if (typeof arq2_toggleArquitecto2 === 'function') {
             try { arq2_toggleArquitecto2(true); } catch (e) {}
         }
-        // 2. Forzar globales directamente (por si hay scope closure en arq2)
+        // Forzar globales directamente — última palabra
         window.isArquitecto2Active = true;
-        window.isDevModeDrawActive = false; // no usar el modo draw legacy
         document.body.classList.add('arq2-active', 'kpk-edit');
     }
 
@@ -161,11 +177,9 @@
         var panel = document.getElementById('kpk-panel');
         var fab   = document.getElementById('kpk-fab');
         if (!panel) return;
-
         panel.classList.toggle('kpk-open', isOpen);
         if (fab) fab.classList.toggle('kpk-fab-on', isOpen);
         document.body.classList.toggle('kpk-edit', isOpen);
-
         if (isOpen) {
             activarMotor();
         } else {
@@ -186,18 +200,16 @@
         if (guide) guide.textContent = GUIDES[tool] || 'Herramienta activa.';
         setStatus('active', LABELS[tool] || tool);
 
-        // Llamar arq2_setTool para que el motor sepa el tool
         if (typeof arq2_setTool === 'function') {
             try { arq2_setTool(tool); } catch (e) {}
         }
-        // CRITICO: Re-forzar globales DESPUES de arq2_setTool
-        // porque arq2_setTool puede haber reseteado isArquitecto2Active
+        // Re-forzar SIEMPRE después de arq2_setTool
         window.isArquitecto2Active = true;
         window.arq2Tool = tool;
-
-        // Para eraser y lote-libre: activar body classes necesarias
         document.body.classList.toggle('eraser-mode-active', tool === 'eraser');
         document.body.classList.toggle('calle-mode-active', tool === 'calle-curva-arq2');
+
+        console.log('[KPK] Herramienta:', tool, '| isArquitecto2Active:', window.isArquitecto2Active);
     }
 
     // ── STATUS ───────────────────────────────────────────────────
@@ -223,16 +235,15 @@
         if (closeBtn) closeBtn.addEventListener('click', function () { toggle(false); });
         fab.addEventListener('click', function () { toggle(); });
 
-        // Botones de herramientas
         document.querySelectorAll('.kpk-btn[data-kpk-tool]').forEach(function (btn) {
             btn.addEventListener('click', function (e) {
                 e.stopPropagation();
-                if (!isOpen) { toggle(true); }
+                if (!isOpen) toggle(true);
                 setTool(btn.dataset.kpkTool);
             });
         });
 
-        // Alt+A — listener global unico, funciona aunque el FAB este oculto
+        // Alt+A — único listener global
         document.addEventListener('keydown', function (e) {
             if (!e.altKey) return;
             if (e.key !== 'a' && e.key !== 'A') return;
@@ -240,28 +251,26 @@
             var tag = document.activeElement && document.activeElement.tagName;
             if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
             e.preventDefault();
-            document.body.classList.add('kpk-edit'); // mostrar FAB
+            document.body.classList.add('kpk-edit');
             toggle();
         });
 
-        // Enter: cerrar polígono en lote-libre / finalizar calle
+        // Enter: cerrar polígono / finalizar calle
         document.addEventListener('keydown', function (e) {
-            if (e.key !== 'Enter') return;
-            if (!isOpen || !activeTool) return;
+            if (e.key !== 'Enter' || !isOpen || !activeTool) return;
             var tag = document.activeElement && document.activeElement.tagName;
             if (tag === 'INPUT' || tag === 'TEXTAREA') return;
-            if (typeof arq2_finalizarLoteLibre === 'function') {
-                try { arq2_finalizarLoteLibre(); } catch (err) {}
-            }
-            if (typeof finishCalleDrawing === 'function') {
-                try { finishCalleDrawing(); } catch (err) {}
-            }
+            if (typeof arq2_finalizarLoteLibre === 'function') { try { arq2_finalizarLoteLibre(); } catch (err) {} }
+            if (typeof finishCalleDrawing === 'function') { try { finishCalleDrawing(); } catch (err) {} }
         });
+
+        // Arrancar motor después de que todos los scripts terminen de cargar
+        setTimeout(arrancarMotor, 800);
 
         window.kpk_toggle  = toggle;
         window.kpk_setTool = setTool;
         window.kpk_status  = setStatus;
-        console.log('[KpranoKiller v3] Listo. Alt+A o FAB hexagonal para abrir.');
+        console.log('[KpranoKiller v4] Listo. Stubs instalados. Alt+A o FAB para abrir.');
     }
 
     if (document.readyState === 'loading') {
