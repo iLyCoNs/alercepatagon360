@@ -105,34 +105,10 @@ function arq2_onPanoramaMove(mock) {
     updateSVGPaths();
 }
 function arq2_screenToPanoCoords(clientX, clientY) {
-    // Replica la matemática de Pannellum ta() pero leyendo el canvas directamente
-    // para que funcione aunque el event.target sea un path SVG y no el canvas.
-    try {
-        const renderer = visor360.getRenderer();
-        const cfg = visor360.getConfig();
-        const canvas = renderer.getCanvas();
-        const rect = canvas.getBoundingClientRect();
-        const nx = canvas.clientWidth  || rect.width  || rect.right - rect.left;
-        const ny = canvas.clientHeight || rect.height || rect.bottom - rect.top;
-        if (!nx || !ny) return null;
-        const x = (clientX - rect.left) / nx * 2 - 1;
-        const y = (1 - (clientY - rect.top) / ny * 2) * ny / nx;
-        const hfov = cfg.hfov * Math.PI / 180;
-        const pitch = cfg.pitch * Math.PI / 180;
-        const yaw0  = cfg.yaw;
-        const d = 1 / Math.tan(hfov / 2);
-        const sp = Math.sin(pitch), cp = Math.cos(pitch);
-        const f = d * cp - y * sp;
-        const n = Math.sqrt(x * x + f * f);
-        const pRad = Math.atan((y * cp + d * sp) / n);
-        let   yRad = Math.atan2(x / n, f / n) * 180 / Math.PI + yaw0;
-        if (yRad < -180) yRad += 360;
-        if (yRad >  180) yRad -= 360;
-        return [pRad * 180 / Math.PI, yRad];
-    } catch(e) {
-        // fallback: usar mouseEventToCoords clásico
+    if (visor360 && typeof visor360.mouseEventToCoords === 'function') {
         return visor360.mouseEventToCoords({ clientX, clientY });
     }
+    return null;
 }
 function arq2_onPanoramaClick(mock, isDblClick) {
     if (!isArquitecto2Active || !visor360) return;
