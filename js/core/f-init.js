@@ -444,6 +444,7 @@
     // y devolverlos a <body> al salir.
     const _bodyOrphans = [
       { id: 'kpk-brand-dock',  nextSibling: null, parent: null },
+      { id: 'kpk-lote-panel',  nextSibling: null, parent: null },
     ];
     // El buyer dock se inyecta dinámicamente por f-buyer-dock.js —
     // se identifica por su clase en runtime.
