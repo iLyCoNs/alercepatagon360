@@ -2644,7 +2644,10 @@ function doLogout() {
   localStorage.removeItem('ferrari_github_branch');
   document.getElementById('app').classList.remove('visible');
   document.getElementById('login-screen').classList.remove('hidden');
-  ['li-pat','li-godpass'].forEach(id => document.getElementById(id).value='');
+  ['li-user', 'li-repo', 'li-pat', 'li-godpass'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
   document.getElementById('god-toggle').classList.remove('active');
   document.getElementById('god-check').textContent='☆';
   document.getElementById('god-pass-group').classList.remove('visible');
@@ -2657,30 +2660,6 @@ function doLogout() {
 document.addEventListener('keydown', e => {
   if (e.key==='Enter' && !document.getElementById('login-screen').classList.contains('hidden')) doLogin();
 });
-
-/* ══ INITIALIZE LOGIN ON PAGE LOAD ══ */
-function initLogin() {
-  const savedUser = localStorage.getItem('ferrari_github_owner') || 'iLyCoNs';
-  const savedRepo = localStorage.getItem('ferrari_github_repo') || 'alercepatagon360';
-  const savedToken = localStorage.getItem('ferrari_github_token') || '';
-  
-  const userEl = document.getElementById('li-user');
-  const repoEl = document.getElementById('li-repo');
-  const patEl = document.getElementById('li-pat');
-  
-  if (userEl) userEl.value = savedUser;
-  if (repoEl) repoEl.value = savedRepo;
-  if (patEl) patEl.value = savedToken;
-  
-  if (savedUser && savedRepo && savedToken) {
-    doLogin();
-  }
-}
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initLogin);
-} else {
-  initLogin();
-}
 </script>
 <div id="god-layer">
   <div id="btn-close-god" onclick="toggleGodLayer()" title="Cerrar Modo Dios">✕</div>
