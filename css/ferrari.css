@@ -2002,10 +2002,8 @@ body.f-tool-mode .kpk-buyer-dock {
   margin: 0 auto;
   padding: 10px 16px;
   border-radius: 999px;
-  border: 1px solid rgba(255,255,255,0.5);
-  background: linear-gradient(180deg, rgba(255,255,255,0.72), rgba(255,255,255,0.42));
-  backdrop-filter: blur(22px) saturate(170%);
-  -webkit-backdrop-filter: blur(22px) saturate(170%);
+  border: 1px solid rgba(15,23,42,0.15);
+  background: #ffffff;
   box-shadow: 0 10px 28px rgba(15, 23, 42, 0.18), inset 0 1px 0 rgba(255,255,255,0.7);
   color: #0f172a;
   font: inherit;
@@ -2015,7 +2013,7 @@ body.f-tool-mode .kpk-buyer-dock {
   cursor: pointer;
   transition: transform 0.18s ease, background 0.18s ease;
 }
-.kbd-toggle:hover { transform: translateY(-1px); }
+.kbd-toggle:hover { transform: translateY(-1px); background: #f1f3f5; }
 .kbd-toggle-ico {
   width: 22px; height: 22px; border-radius: 50%;
   display: grid; place-items: center;
@@ -2403,6 +2401,10 @@ body.f-tool-mode .kpk-buyer-dock {
 }
 .kbd-map-btn img { display: block; }
 
+.kpk-buyer-dock.is-expanded .kbd-toggle {
+  display: none !important;
+}
+
 @media (max-width: 640px) {
   .kpk-buyer-dock {
     bottom: max(10px, env(safe-area-inset-bottom, 0px));
@@ -2422,11 +2424,53 @@ body.f-tool-mode .kpk-buyer-dock {
     max-height: min(34vh, 240px);
   }
   .kbd-map-btn { min-width: 100%; }
+
+  /* Reposition Pannellum controls to avoid overlapping with top/bottom docks */
+  .pnlm-controls-container {
+    top: 72px !important;
+    left: 10px !important;
+  }
+
+  /* Larger touch target for the close button on mobile */
+  .kbd-collapse {
+    width: 36px !important;
+    height: 36px !important;
+  }
+
+  /* Adapt spectrometer modal size for mobile */
+  .kpk-lote-panel.spectator-mode {
+    width: min(300px, calc(100vw - 20px)) !important;
+  }
+  .kpk-lote-panel.spectator-mode.form-open {
+    width: min(320px, calc(100vw - 20px)) !important;
+  }
 }
 
 @media (max-width: 380px) {
   .kbd-toggle-label { font-size: 11.5px; }
   .kbd-tab { font-size: 11.5px; padding: 7px 4px; }
+}
+
+/* Landscape orientation / Small viewports / Iframes under 520px high */
+@media (max-height: 520px) {
+  .kbd-glass {
+    max-height: 75vh !important;
+    display: flex !important;
+    flex-direction: column !important;
+    padding: 10px 10px 8px !important;
+  }
+  .kbd-list {
+    max-height: 120px !important;
+  }
+  .kbd-map-wrap {
+    aspect-ratio: 2.2 / 1 !important;
+    min-height: 100px !important;
+    max-height: 140px !important;
+  }
+  .kpk-lote-panel.spectator-mode {
+    top: 50% !important;
+    transform: translate(-50%, -50%) scale(0.82) !important;
+  }
 }
 
 /* === GEO SYSTEM (compass + pins + editor) — see block below === */
