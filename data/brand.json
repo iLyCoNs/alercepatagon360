@@ -1,0 +1,21 @@
+{
+  "version": 2,
+  "projectName": "",
+  "logoPath": null,
+  "logoId": null,
+  "logos": [],
+  "font": "cormorant",
+  "dockStyle": "crystal",
+  "mobileSolid": true,
+  "contact": {
+    "whatsapp": "+56987491964",
+    "formEmail": "perito.vidal@gmail.com",
+    "formEnabled": true,
+    "platformCta": "Consigue tu 360° aquí",
+    "platformWhatsapp": "+56987491964",
+    "platformWeb": "https://www.australdrone.cl",
+    "platformLogo": "https://raw.githubusercontent.com/iLyCoNs/austral-drones/refs/heads/main/logobanner.png",
+    "platformName": "Austral Drone"
+  },
+  "updatedAt": 1783970258074
+}
