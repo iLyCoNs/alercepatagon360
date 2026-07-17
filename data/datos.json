@@ -111,8 +111,9 @@
         -78.56620011123945,
         -52.86736369047523
       ],
-      "dimensiones": "5000",
-      "valorUF": 1500
+      "dimensiones": "",
+      "valorUF": null,
+      "fotos": []
     },
     {
       "tipo": "lote-libre",
@@ -148,7 +149,8 @@
         -27.545775603955583
       ],
       "dimensiones": "5000",
-      "valorUF": 1500
+      "valorUF": 1500,
+      "fotos": []
     },
     {
       "tipo": "lote-libre",
