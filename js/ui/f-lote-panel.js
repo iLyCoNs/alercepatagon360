@@ -135,7 +135,8 @@
     const enabled = c.formEnabled !== false && !!(c.formEmail && String(c.formEmail).includes('@'));
     if (wrap) wrap.style.display = enabled ? '' : 'none';
     if (_specBtnWsp) {
-      const hasWa = !!(c.whatsapp && String(c.whatsapp).replace(/\D/g, '').length >= 8);
+      const waPhone = c.whatsapp || c.platformWhatsapp || '';
+      const hasWa = !!(waPhone && String(waPhone).replace(/\D/g, '').length >= 8);
       _specBtnWsp.style.display = hasWa ? '' : 'none';
     }
     if (!line) return;
@@ -282,11 +283,12 @@
     if (_specBtnWsp) {
       _specBtnWsp.addEventListener('click', () => {
         const c = _getContact();
+        const waPhone = c.whatsapp || c.platformWhatsapp || '';
         const titulo = _specTitle.textContent || 'un lote';
         const msg = `Hola, me interesa obtener más información sobre el ${titulo} (${_getProjectName()}).`;
         let url = null;
         if (window.FerrariBrandDock && window.FerrariBrandDock.whatsappUrl) {
-          url = window.FerrariBrandDock.whatsappUrl(c.whatsapp, msg);
+          url = window.FerrariBrandDock.whatsappUrl(waPhone, msg);
         }
         if (!url) {
           window.FerrariUI && window.FerrariUI.showToast('WhatsApp del proyecto no configurado en Admin.', 'info');
