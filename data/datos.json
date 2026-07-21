@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": 1784639375776,
+  "updatedAt": 1784641532406,
   "lotes": [
     {
       "tipo": "lote-libre",
@@ -1489,7 +1489,7 @@
   ],
   "geo": {
     "version": 1,
-    "updatedAt": 1784639373776,
+    "updatedAt": 1784641502476,
     "droneOrigin": {
       "lat": -41.87585,
       "lng": -72.748294,
@@ -1508,7 +1508,11 @@
         "lng": -72.9395915,
         "notas": "",
         "lockYaw": true,
-        "createdAt": 1784638610564
+        "createdAt": 1784638610564,
+        "routeDistM": 77279.2,
+        "routeSec": 7590.2,
+        "routeSource": "osrm",
+        "routeManual": false
       },
       {
         "id": "3df59447-00fb-4cfd-8e45-22a88a414527",
@@ -1521,7 +1525,11 @@
         "lng": -72.7186955,
         "notas": "",
         "lockYaw": true,
-        "createdAt": 1784638640293
+        "createdAt": 1784638640293,
+        "routeDistM": 16387.2,
+        "routeSec": 1723.2,
+        "routeSource": "osrm",
+        "routeManual": false
       },
       {
         "id": "bfaa0949-031d-4c68-8ee7-6ce42465e224",
@@ -1534,7 +1542,11 @@
         "lng": -72.8107546,
         "notas": "",
         "lockYaw": true,
-        "createdAt": 1784638694201
+        "createdAt": 1784638694201,
+        "routeDistM": 7110.7,
+        "routeSec": 903,
+        "routeSource": "osrm",
+        "routeManual": false
       },
       {
         "id": "16ef5b2a-b98d-4941-a0d9-7ad5b655e49f",
@@ -1547,7 +1559,11 @@
         "lng": -72.8457526,
         "notas": "",
         "lockYaw": true,
-        "createdAt": 1784638727814
+        "createdAt": 1784638727814,
+        "routeDistM": 11515.9,
+        "routeSec": 1268.4,
+        "routeSource": "osrm",
+        "routeManual": false
       },
       {
         "id": "9c0fd73b-39f0-4058-a7cf-5aabb0abc2cf",
@@ -1560,7 +1576,11 @@
         "lng": -72.8463316,
         "notas": "",
         "lockYaw": true,
-        "createdAt": 1784638766779
+        "createdAt": 1784638766779,
+        "routeDistM": 13657.3,
+        "routeSec": 1461.3,
+        "routeSource": "osrm",
+        "routeManual": false
       },
       {
         "id": "b6a5a0de-a771-454d-84c4-af80596617cb",
@@ -1573,7 +1593,11 @@
         "lng": -72.4703112,
         "notas": "",
         "lockYaw": true,
-        "createdAt": 1784638833569
+        "createdAt": 1784638833569,
+        "routeDistM": 61473.5,
+        "routeSec": 4119.2,
+        "routeSource": "osrm",
+        "routeManual": false
       },
       {
         "id": "1ff4b45b-6223-4ca3-a21f-0da70bc4626a",
@@ -1586,7 +1610,28 @@
         "lng": -72.311872,
         "notas": "",
         "lockYaw": true,
-        "createdAt": 1784638877216
+        "createdAt": 1784638877216,
+        "routeDistM": 94250.3,
+        "routeSec": 7437.2,
+        "routeSource": "osrm",
+        "routeManual": false
+      },
+      {
+        "id": "074f9470-9a3b-4ff4-b4d4-06b1cff3d805",
+        "tipo": "horizonte",
+        "categoria": "ciudad",
+        "titulo": "Chaitén",
+        "pitch": 0.6381968670208807,
+        "yaw": -108.18789481095956,
+        "lat": -42.9165335,
+        "lng": -72.7084192,
+        "notas": "",
+        "lockYaw": true,
+        "createdAt": 1784641313091,
+        "routeDistM": 926397.9,
+        "routeSec": 52930.9,
+        "routeSource": "osrm",
+        "routeManual": false
       }
     ]
   }
