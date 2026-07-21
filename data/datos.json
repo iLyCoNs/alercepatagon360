@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": 1784602850519,
+  "updatedAt": 1784639375776,
   "lotes": [
     {
       "tipo": "lote-libre",
@@ -1169,7 +1169,10 @@
           16.90557276274606
         ]
       ],
-      "_pinCentroid": null
+      "_pinCentroid": [
+        -69.86586090328589,
+        -27.636661222681735
+      ]
     },
     {
       "tipo": "calle",
@@ -1242,7 +1245,10 @@
           -109.65159352799996
         ]
       ],
-      "_pinCentroid": null
+      "_pinCentroid": [
+        -59.94397812213055,
+        -102.27791764221539
+      ]
     },
     {
       "tipo": "calle",
@@ -1435,7 +1441,10 @@
           91.85804557483299
         ]
       ],
-      "_pinCentroid": null
+      "_pinCentroid": [
+        -62.36593106999143,
+        58.412328919203745
+      ]
     },
     {
       "tipo": "calle",
@@ -1446,7 +1455,7 @@
         ],
         [
           -61.89597469693709,
-          34.72818676332313
+          34.728186763323144
         ]
       ],
       "anchoAngular": 1.01403790690539,
@@ -1465,24 +1474,120 @@
         ],
         [
           -61.787133716235935,
-          35.777546814131895
+          35.7775468141319
         ],
         [
           -74.89524620390004,
           -179.20461284908856
         ]
+      ],
+      "_pinCentroid": [
+        -81.14903006373703,
+        63.1074274507244
       ]
     }
   ],
   "geo": {
     "version": 1,
-    "updatedAt": 1783922841018,
+    "updatedAt": 1784639373776,
     "droneOrigin": {
       "lat": -41.87585,
       "lng": -72.748294,
       "label": "ORIGEN DRONE"
     },
     "northOffset": -88.6320172617294,
-    "pins": []
+    "pins": [
+      {
+        "id": "1bf6bead-08c5-4e3c-83d9-1daedbffd2cc",
+        "tipo": "horizonte",
+        "categoria": "ciudad",
+        "titulo": "PUERTO MONTT",
+        "pitch": 0.3674025367247954,
+        "yaw": 98.49517597809886,
+        "lat": -41.471798,
+        "lng": -72.9395915,
+        "notas": "",
+        "lockYaw": true,
+        "createdAt": 1784638610564
+      },
+      {
+        "id": "3df59447-00fb-4cfd-8e45-22a88a414527",
+        "tipo": "horizonte",
+        "categoria": "ciudad",
+        "titulo": "CONTAO",
+        "pitch": -3.707830198801835,
+        "yaw": 101.60865979449324,
+        "lat": -41.8024607,
+        "lng": -72.7186955,
+        "notas": "",
+        "lockYaw": true,
+        "createdAt": 1784638640293
+      },
+      {
+        "id": "bfaa0949-031d-4c68-8ee7-6ce42465e224",
+        "tipo": "horizonte",
+        "categoria": "ciudad",
+        "titulo": "CALETA AULEN",
+        "pitch": -6.908705173916356,
+        "yaw": 39.771244891592474,
+        "lat": -41.8747517,
+        "lng": -72.8107546,
+        "notas": "",
+        "lockYaw": true,
+        "createdAt": 1784638694201
+      },
+      {
+        "id": "16ef5b2a-b98d-4941-a0d9-7ad5b655e49f",
+        "tipo": "horizonte",
+        "categoria": "ciudad",
+        "titulo": "TENTELHUE",
+        "pitch": -7.747250001832329,
+        "yaw": 3.1110836953862133,
+        "lat": -41.9031673,
+        "lng": -72.8457526,
+        "notas": "",
+        "lockYaw": true,
+        "createdAt": 1784638727814
+      },
+      {
+        "id": "9c0fd73b-39f0-4058-a7cf-5aabb0abc2cf",
+        "tipo": "horizonte",
+        "categoria": "ciudad",
+        "titulo": "ROLECHA",
+        "pitch": -5.6919509943911,
+        "yaw": -12.891176279767034,
+        "lat": -41.9197682,
+        "lng": -72.8463316,
+        "notas": "",
+        "lockYaw": true,
+        "createdAt": 1784638766779
+      },
+      {
+        "id": "b6a5a0de-a771-454d-84c4-af80596617cb",
+        "tipo": "horizonte",
+        "categoria": "ciudad",
+        "titulo": "HORNOPIRÉN",
+        "pitch": 1.3592140504267927,
+        "yaw": -137.64810053712353,
+        "lat": -41.9662087,
+        "lng": -72.4703112,
+        "notas": "",
+        "lockYaw": true,
+        "createdAt": 1784638833569
+      },
+      {
+        "id": "1ff4b45b-6223-4ca3-a21f-0da70bc4626a",
+        "tipo": "horizonte",
+        "categoria": "ciudad",
+        "titulo": "COCHAMÓ",
+        "pitch": 1.1273444904946888,
+        "yaw": 125.14913258655304,
+        "lat": -41.4937252,
+        "lng": -72.311872,
+        "notas": "",
+        "lockYaw": true,
+        "createdAt": 1784638877216
+      }
+    ]
   }
 }
