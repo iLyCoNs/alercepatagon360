@@ -2956,7 +2956,7 @@ async function saveAll(opts) {
   }
 
   try {
-    const payload = { lotes: _lotes };
+    const payload = { version: 1, updatedAt: Date.now(), lotes: _lotes };
     if (_geo) payload.geo = _geo;
     const jsonStr = JSON.stringify(payload, null, 2);
     if (jsonStr.length > 900000) {

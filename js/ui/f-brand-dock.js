@@ -262,16 +262,26 @@
       return JSON.parse(decodeURIComponent(escape(atob(meta.content.replace(/\n/g, '')))));
     }
 
+    const bust = `t=${Date.now()}`;
+    const noStore = {
+      cache: 'no-store',
+      headers: { 'Cache-Control': 'no-cache', Pragma: 'no-cache' }
+    };
+
+    // Raw primero (fresco al commit); Pages puede servir brand.json viejo varios minutos
     try {
-      const local = await fetch(`${PATH}?t=${Date.now()}`, { cache: 'no-store' });
+      const rawUrl = `https://raw.githubusercontent.com/${OWNER}/${REPO}/${BRANCH}/${PATH}?${bust}`;
+      const r = await fetch(rawUrl, noStore);
+      if (r.status === 404) return { ...DEFAULTS };
+      if (r.ok) return await r.json();
+    } catch (e) { /* seguir */ }
+
+    try {
+      const local = await fetch(`${PATH}?${bust}`, noStore);
       if (local.ok) return await local.json();
     } catch (e) { /* seguir */ }
 
-    const rawUrl = `https://raw.githubusercontent.com/${OWNER}/${REPO}/${BRANCH}/${PATH}?t=${Date.now()}`;
-    const r = await fetch(rawUrl);
-    if (r.status === 404) return { ...DEFAULTS };
-    if (!r.ok) throw new Error('brand.json no disponible');
-    return await r.json();
+    throw new Error('brand.json no disponible');
   }
 
   async function load() {

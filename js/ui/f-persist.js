@@ -314,25 +314,51 @@
     input.click();
   }
 
+  function _fetchNoStore(url, headers) {
+    return fetch(url, {
+      cache: 'no-store',
+      headers: Object.assign({
+        'Cache-Control': 'no-cache',
+        Pragma: 'no-cache'
+      }, headers || {})
+    });
+  }
+
+  /**
+   * Carga JSON del repo evitando caché del navegador / CDN de Pages.
+   * Orden (sin token):
+   *   1) raw.githubusercontent.com — refleja el commit al instante
+   *   2) misma origen (GitHub Pages) — puede tardar minutos en redeploy
+   * Con token: Contents API (siempre fresco).
+   */
   async function _fetchRepoJson(OWNER, REPO, BRANCH, path, token) {
+    const bust = `t=${Date.now()}`;
+
     if (token) {
-      const url = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${path}?t=${Date.now()}`;
-      const r = await fetch(url, {
-        headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github.v3+json' }
+      const url = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${path}?${bust}`;
+      const r = await _fetchNoStore(url, {
+        Authorization: `token ${token}`,
+        Accept: 'application/vnd.github.v3+json'
       });
       if (!r.ok) return null;
       const meta = await r.json();
       return JSON.parse(decodeURIComponent(escape(atob(meta.content.replace(/\n/g, '')))));
     }
-    // Misma origen (Pages / local)
+
+    // 1) Raw primero: el admin publica por Contents API y raw se actualiza al commit
     try {
-      const local = await fetch(`${path}?t=${Date.now()}`, { cache: 'no-store' });
+      const rawUrl = `https://raw.githubusercontent.com/${OWNER}/${REPO}/${BRANCH}/${path}?${bust}`;
+      const r = await _fetchNoStore(rawUrl);
+      if (r.ok) return await r.json();
+    } catch (e) { /* seguir */ }
+
+    // 2) Fallback: Pages / servidor local
+    try {
+      const local = await _fetchNoStore(`${path}?${bust}`);
       if (local.ok) return await local.json();
     } catch (e) {}
-    const rawUrl = `https://raw.githubusercontent.com/${OWNER}/${REPO}/${BRANCH}/${path}?t=${Date.now()}`;
-    const r = await fetch(rawUrl);
-    if (!r.ok) return null;
-    return await r.json();
+
+    return null;
   }
 
   /**
@@ -403,21 +429,27 @@
       }
     }, false);
 
-    // Auto-load: primero localStorage, luego intenta GitHub raw (prioridad)
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      try {
-        const data = JSON.parse(raw);
-        if (Array.isArray(data) && data.length > 0) {
-          window.FerrariState.replaceAll(data);
-          _rebuildStreetNetwork();
-          window.FerrariCamera.markDirty();
-          console.log('[Ferrari/Persist] Auto-cargado:', data.length, 'líneas desde localStorage');
-        }
-      } catch(e) { /* ignorar */ }
+    // Auto-load:
+    // - Viewer (comprador): NO usar localStorage como fuente de verdad (puede
+    //   quedar viejo o pisar datos frescos). Solo red con cache-bust.
+    // - Editor / Modo Dios: localStorage primero (trabajo en curso), luego red.
+    const isViewer = window.FERRARI_MODE === 'viewer';
+    if (!isViewer) {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        try {
+          const data = JSON.parse(raw);
+          if (Array.isArray(data) && data.length > 0) {
+            window.FerrariState.replaceAll(data);
+            _rebuildStreetNetwork();
+            window.FerrariCamera.markDirty();
+            console.log('[Ferrari/Persist] Auto-cargado:', data.length, 'líneas desde localStorage');
+          }
+        } catch (e) { /* ignorar */ }
+      }
     }
 
-    // Intentar cargar desde GitHub Pages (data/lotes.json)
+    // Siempre traer la versión publicada (raw/API sin caché)
     _loadFromGitHubRaw();
 
     // Modo Dios: si ?mode=god en URL, abrir panel de herramientas automáticamente
