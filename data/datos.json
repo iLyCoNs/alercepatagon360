@@ -193,9 +193,10 @@
         -16.48782867089046
       ],
       "hasSmartPin": true,
-      "dimensiones": "5.700",
-      "valorUF": 1850,
-      "caracteristicas": "Cercano al acceso principal del loteo, terreno plano, agua potable instalada en el límite."
+      "dimensiones": "5.100",
+      "valorUF": 400,
+      "caracteristicas": "Cercano al acceso principal del loteo, terreno plano, agua potable instalada en el límite.",
+      "fotos": []
     },
     {
       "tipo": "lote-libre",
