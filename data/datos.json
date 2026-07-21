@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": 1784602741915,
+  "updatedAt": 1784602767959,
   "lotes": [
     {
       "tipo": "lote-libre",
@@ -267,8 +267,8 @@
         -2.400085062887073
       ],
       "hasSmartPin": true,
-      "dimensiones": "6.200",
-      "valorUF": 2200,
+      "dimensiones": "5.300",
+      "valorUF": 404,
       "caracteristicas": "Excelente asoleamiento de mañana, pendiente suave con terraza natural lista para construir.",
       "fotos": []
     },
