@@ -1330,6 +1330,7 @@
             <p class="brand-card-sub" style="margin:12px 0 0; font-size:11px;">
               <strong>Cómo obtener la API Key gratis:</strong> Agrega a tus contactos al bot de WhatsApp <strong>+34 621 34 22 27</strong> (o haz click <a href="https://wa.me/34621342227" target="_blank" style="color:var(--accent)">aquí</a>), mándale el mensaje <code>I allow callmebot to send me messages</code> y te devolverá tu clave de 6 dígitos al instante.
             </p>
+          </div>
 
           <div class="ecard" id="contact-platform-lock" style="padding:16px 18px;margin:0" hidden>
             <div class="ecard-title">Plataforma · Consigue tu 360 <span style="opacity:.5;font-weight:500;text-transform:none;letter-spacing:0">(ALT+X)</span></div>
@@ -1439,7 +1440,7 @@
           <button class="btn-save" id="btn-save" onclick="saveLote()">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
             <div class="btn-spin"></div>
-            <span id="save-txt">Guardar Cambios</span>
+            <span id="save-txt">Guardar en GitHub</span>
           </button>
         </div>
       </div>
@@ -1463,9 +1464,7 @@
               <div class="prow"><span class="plabel">Valor CLP</span><span class="pval clp" id="p-clp">—</span></div>
             </div>
             <div class="pdiv" id="p-caracteristicas-div" style="display: none; height: 1px; background: rgba(255,255,255,0.06); margin: 10px 0;"></div>
-            <div class="kpk-spec-tags-container" id="p-caracteristicas-tags-container" style="display: none; padding: 4px 16px 16px 16px;">
-              <!-- Se previsualizan los tags en tiempo real -->
-            </div>
+            <div class="kpk-spec-tags-container" id="p-caracteristicas-tags-container" style="display: none; padding: 4px 16px 16px 16px;"></div>
             <div class="pfoot">
               <div class="pbtn foto" id="p-btn-foto" onclick="previewGallery()">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
@@ -1752,8 +1751,12 @@ function selectLote(id) {
   if (!l) return;
   if (!Array.isArray(l.fotos)) l.fotos = [];
   document.querySelectorAll('.lote-item').forEach(el => el.classList.toggle('active', el.dataset.id === id));
-  document.getElementById('ed-placeholder').style.display = 'none';
-  const f = document.getElementById('ed-form'); f.style.display = 'flex';
+
+  const ph = document.getElementById('ed-placeholder');
+  const f = document.getElementById('ed-form');
+  if (ph) { ph.hidden = true; ph.style.display = 'none'; }
+  if (f) { f.hidden = false; f.style.display = 'flex'; }
+
   document.getElementById('f-titulo').value = l.titulo || '';
   document.getElementById('f-dim').value    = l.dimensiones || '';
   document.getElementById('f-uf').value     = l.valorUF || '';
@@ -2704,12 +2707,15 @@ function setAdminSection(sec) {
   document.querySelectorAll('[data-admin-section]').forEach(el => {
     const match = el.dataset.adminSection === _adminSection;
     if (el.id === 'ed-form') {
-      if (_adminSection !== 'lotes') el.style.display = 'none';
-      else if (_cid) el.style.display = 'flex';
+      const show = _adminSection === 'lotes' && !!_cid;
+      el.hidden = !show;
+      el.style.display = show ? 'flex' : 'none';
       return;
     }
     if (el.id === 'ed-placeholder') {
-      el.hidden = !(_adminSection === 'lotes' && !_cid);
+      const show = _adminSection === 'lotes' && !_cid;
+      el.hidden = !show;
+      el.style.display = show ? '' : 'none';
       return;
     }
     el.hidden = !match;
@@ -2843,16 +2849,19 @@ function liveUpdate() {
   document.getElementById('f-clp').textContent   = clpRaw ? '~ '+fmtCLP(clpRaw) : '—';
 
   const desc = document.getElementById('f-caracteristicas') ? document.getElementById('f-caracteristicas').value : '';
-  const descWrap = document.getElementById('p-caracteristicas-wrap');
   const descDiv = document.getElementById('p-caracteristicas-div');
-  const descTxt = document.getElementById('p-caracteristicas');
-  if (descWrap && descTxt && descDiv) {
-    if (desc.trim()) {
-      descTxt.textContent = desc;
-      descWrap.style.display = 'block';
+  const tagsBox = document.getElementById('p-caracteristicas-tags-container');
+  if (descDiv && tagsBox) {
+    const tags = desc.split(/[,.;]/).map(t => t.trim()).filter(Boolean);
+    if (tags.length) {
+      tagsBox.innerHTML = tags.map(t => `<span class="kpk-spec-tag">${t.replace(/</g,'&lt;')}</span>`).join('');
+      tagsBox.style.display = 'flex';
+      tagsBox.style.flexWrap = 'wrap';
+      tagsBox.style.gap = '6px';
       descDiv.style.display = 'block';
     } else {
-      descWrap.style.display = 'none';
+      tagsBox.innerHTML = '';
+      tagsBox.style.display = 'none';
       descDiv.style.display = 'none';
     }
   }
@@ -2864,9 +2873,18 @@ function liveUpdate() {
 
 /* ══ GUARDAR ══ */
 async function saveLote() {
-  if (!_cid) return;
+  if (!_cid) {
+    showToast('Selecciona un lote primero', 'info');
+    return;
+  }
+  if (!_sess) {
+    showToast('Inicia sesión para guardar en GitHub', 'error');
+    return;
+  }
+
   const l = _lotes.find(x => x.id === _cid);
   if (!l) return;
+
   l.titulo      = document.getElementById('f-titulo').value.trim();
   l.estado      = _estado;
   l.dimensiones = document.getElementById('f-dim').value.trim();
@@ -2875,67 +2893,106 @@ async function saveLote() {
   if (descEl) l.caracteristicas = descEl.value.trim();
   if (!Array.isArray(l.fotos)) l.fotos = [];
 
-  saveAll();
+  const btn = document.getElementById('btn-save');
+  const txt = document.getElementById('save-txt');
+  const oldTxt = txt ? txt.textContent : 'Guardar en GitHub';
+  if (btn) btn.classList.add('loading');
+  if (txt) txt.textContent = 'Guardando en GitHub…';
 
-  renderSidebar();
-  liveUpdate();
+  try {
+    await saveAll({
+      message: `Admin: actualizar ficha Smart Pin — ${l.titulo || l.id}`,
+      silent: true,
+      throwOnError: true
+    });
 
-  try { localStorage.setItem('ferrari360_lines', JSON.stringify(_lotes)); } catch (e) {}
+    renderSidebar();
+    liveUpdate();
 
-  if (window.FerrariState) {
-    window.FerrariState.replaceAll(_lotes);
-    if (window.FerrariCamera) window.FerrariCamera.markDirty();
+    try { localStorage.setItem('ferrari360_lines', JSON.stringify(_lotes)); } catch (e) {}
+
+    if (window.FerrariState) {
+      window.FerrariState.replaceAll(_lotes);
+      if (window.FerrariCamera) window.FerrariCamera.markDirty();
+    }
+
+    if (btn) {
+      btn.classList.remove('loading');
+      btn.classList.add('success');
+    }
+    if (txt) txt.textContent = '✓ Guardado en GitHub';
+    confetti();
+    showToast(`✓ Ficha de «${l.titulo || 'lote'}» publicada en GitHub`, 'success');
+    setTimeout(() => {
+      if (btn) btn.classList.remove('success');
+      if (txt) txt.textContent = oldTxt;
+    }, 1800);
+  } catch (e) {
+    if (btn) btn.classList.remove('loading');
+    if (txt) txt.textContent = oldTxt;
+    showToast('Error: ' + (e.message || e), 'error');
   }
 }
 
 /* ══ GUARDAR TODO (GLOBAL) ══ */
-async function saveAll() {
+async function saveAll(opts) {
+  opts = opts || {};
   if (!_sess) {
     showToast('Inicia sesión para guardar en GitHub', 'error');
+    if (opts.silent || opts.throwOnError) throw new Error('Sin sesión');
     return;
   }
-  
+
   const btn = document.getElementById('btn-save-all');
   const txt = document.getElementById('save-all-txt');
   const oldTxt = txt ? txt.textContent : 'Guardar';
-  
-  if (txt) txt.textContent = 'Guardando…';
-  if (btn) {
-    btn.style.opacity = '0.7';
-    btn.style.pointerEvents = 'none';
+
+  if (!opts.silent) {
+    if (txt) txt.textContent = 'Guardando…';
+    if (btn) {
+      btn.style.opacity = '0.7';
+      btn.style.pointerEvents = 'none';
+    }
   }
 
   try {
     const payload = { lotes: _lotes };
     if (_geo) payload.geo = _geo;
     const jsonStr = JSON.stringify(payload, null, 2);
-    // GitHub Contents API ~1MB práctico en base64; avisar si se acerca
     if (jsonStr.length > 900000) {
       showToast('Advertencia: el JSON es muy grande por las fotos. Considera menos imágenes.', 'info');
     }
     const content = btoa(unescape(encodeURIComponent(jsonStr)));
     const url = `https://api.github.com/repos/${CFG.GITHUB_OWNER}/${CFG.GITHUB_REPO}/contents/${CFG.DATA_PATH}`;
-    const body = { message: `Admin: Guardado global (${_lotes.length} elementos)`, content, branch: CFG.BRANCH };
+    const body = {
+      message: opts.message || `Admin: Guardado global (${_lotes.length} elementos)`,
+      content,
+      branch: CFG.BRANCH
+    };
     if (_sha) body.sha = _sha;
-    
+
     const r = await fetch(url, {
       method: 'PUT',
       headers: { Authorization: `token ${_sess.token}`, Accept: 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
     });
-    
+
     if (!r.ok) { const e = await r.json(); throw new Error(e.message || 'Error GitHub'); }
     const res = await r.json();
     _sha = res.content.sha;
-    
-    showToast('✓ Lotes guardados en GitHub', 'success');
-  } catch(e) {
-    showToast('Error: ' + e.message, 'error');
+
+    if (!opts.silent) showToast('✓ Lotes guardados en GitHub', 'success');
+    return res;
+  } catch (e) {
+    if (!opts.silent) showToast('Error: ' + e.message, 'error');
+    if (opts.silent || opts.throwOnError) throw e;
   } finally {
-    if (txt) txt.textContent = oldTxt;
-    if (btn) {
-      btn.style.opacity = '1';
-      btn.style.pointerEvents = 'all';
+    if (!opts.silent) {
+      if (txt) txt.textContent = oldTxt;
+      if (btn) {
+        btn.style.opacity = '1';
+        btn.style.pointerEvents = 'all';
+      }
     }
   }
 }
@@ -2944,6 +3001,7 @@ async function saveAll() {
 function confetti() {
   const cols = ['#34C759','#007AFF','#FF9500','#C9A84C','#5E5CE6','#FF3B30','#fff'];
   const btn  = document.getElementById('btn-save');
+  if (!btn) return;
   const rc   = btn.getBoundingClientRect();
   for (let i = 0; i < 35; i++) {
     const p = document.createElement('div'); p.className = 'cf';
@@ -3018,7 +3076,9 @@ function doLogout() {
   document.getElementById('god-pass-group').classList.remove('visible');
   document.getElementById('btn-god-link').classList.remove('visible');
   document.getElementById('ed-form').style.display='none';
+  document.getElementById('ed-form').hidden = true;
   document.getElementById('ed-placeholder').style.display='';
+  document.getElementById('ed-placeholder').hidden = false;
 }
 
 /* ══ ENTER KEY ══ */
