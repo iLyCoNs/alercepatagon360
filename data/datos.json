@@ -451,7 +451,8 @@
       "hasSmartPin": true,
       "dimensiones": "5.480",
       "valorUF": 1680,
-      "caracteristicas": "Orilla de río, bosque nativo denso, ideal para amantes de la naturaleza y cabaña rústica."
+      "caracteristicas": "Orilla de río, bosque nativo denso, ideal para amantes de la naturaleza y cabaña rústica.",
+      "fotos": []
     },
     {
       "tipo": "lote-libre",
@@ -488,7 +489,8 @@
       "hasSmartPin": true,
       "dimensiones": "5.700",
       "valorUF": 1850,
-      "caracteristicas": "Loma alta con vista panorámica 360°, terreno despejado, suelo firme ideal para construcción rápida."
+      "caracteristicas": "Loma alta con vista panorámica 360°, terreno despejado, suelo firme ideal para construcción rápida.",
+      "fotos": []
     },
     {
       "tipo": "lote-libre",
@@ -519,9 +521,10 @@
         24.01595724270391
       ],
       "hasSmartPin": true,
-      "dimensiones": "6.050",
-      "valorUF": 1990,
-      "caracteristicas": "Cercano al acceso principal del loteo, terreno plano, agua potable instalada en el límite."
+      "dimensiones": "5200",
+      "valorUF": 337,
+      "caracteristicas": "Cercano al acceso principal del loteo, terreno plano, agua potable instalada en el límite.",
+      "fotos": []
     },
     {
       "tipo": "lote-libre",
