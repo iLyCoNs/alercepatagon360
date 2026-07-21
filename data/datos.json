@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": 1784602726593,
+  "updatedAt": 1784602741915,
   "lotes": [
     {
       "tipo": "lote-libre",
@@ -153,8 +153,8 @@
         -74.82047380087394,
         -27.545775603955583
       ],
-      "dimensiones": "5.480",
-      "valorUF": 1680,
+      "dimensiones": "5.000",
+      "valorUF": 404,
       "fotos": [],
       "caracteristicas": "Loma alta con vista panorámica 360°, terreno despejado, suelo firme ideal para construcción rápida."
     },
