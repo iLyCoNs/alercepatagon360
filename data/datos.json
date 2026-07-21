@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": 1784602809786,
+  "updatedAt": 1784602831805,
   "lotes": [
     {
       "tipo": "lote-libre",
@@ -523,7 +523,7 @@
         24.01595724270391
       ],
       "hasSmartPin": true,
-      "dimensiones": "5200",
+      "dimensiones": "5.200",
       "valorUF": 337,
       "caracteristicas": "Cercano al acceso principal del loteo, terreno plano, agua potable instalada en el límite.",
       "fotos": []
