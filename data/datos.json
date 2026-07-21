@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": 1784602767959,
+  "updatedAt": 1784602792973,
   "lotes": [
     {
       "tipo": "lote-libre",
@@ -451,8 +451,8 @@
         59.90489154557821
       ],
       "hasSmartPin": true,
-      "dimensiones": "5.480",
-      "valorUF": 1680,
+      "dimensiones": "5.800",
+      "valorUF": 346,
       "caracteristicas": "Orilla de río, bosque nativo denso, ideal para amantes de la naturaleza y cabaña rústica.",
       "fotos": []
     },
