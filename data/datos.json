@@ -267,7 +267,8 @@
       "hasSmartPin": true,
       "dimensiones": "6.200",
       "valorUF": 2200,
-      "caracteristicas": "Excelente asoleamiento de mañana, pendiente suave con terraza natural lista para construir."
+      "caracteristicas": "Excelente asoleamiento de mañana, pendiente suave con terraza natural lista para construir.",
+      "fotos": []
     },
     {
       "tipo": "lote-libre",
@@ -319,8 +320,9 @@
       ],
       "hasSmartPin": true,
       "dimensiones": "5.000",
-      "valorUF": 1250,
-      "caracteristicas": "Terreno mixto con plano y bosque, abundante sombra de árboles centenarios, entorno muy privado."
+      "valorUF": 412,
+      "caracteristicas": "Terreno mixto con plano y bosque, abundante sombra de árboles centenarios, entorno muy privado.",
+      "fotos": []
     },
     {
       "tipo": "lote-libre",
