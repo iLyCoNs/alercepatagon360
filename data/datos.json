@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": 1784602831805,
+  "updatedAt": 1784602850519,
   "lotes": [
     {
       "tipo": "lote-libre",
@@ -557,7 +557,7 @@
         24.021077600563043
       ],
       "hasSmartPin": true,
-      "dimensiones": "10600",
+      "dimensiones": "10.600",
       "valorUF": 551,
       "caracteristicas": "Sector muy tranquilo al fondo del condominio, rodeado de vegetación nativa, vertiente natural cercana.",
       "fotos": []
