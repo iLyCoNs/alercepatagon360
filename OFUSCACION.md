@@ -1,6 +1,6 @@
 # Ofuscación Plan Básico
 
-- JS vital ofuscado (34 archivos).
+- JS vital ofuscado (41 archivos).
 - Backup legible: `_clear_backup/`
 - NO ofuscado: pannellum.js, HTML, CSS, data/*.json, admin.html
 
