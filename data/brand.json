@@ -1,13 +1,18 @@
 {
-  "version": 2,
+  "version": 3,
   "projectName": "PROYECTO ALERCE PATAGÓN 360°",
   "logoPath": null,
   "logoId": null,
   "logos": [],
+  "titleBannerPath": "assets/brand/banners/title_mrw6zrds.png",
+  "titleBannerHref": null,
+  "titleBannerScale": 200,
   "font": "montserrat",
   "dockStyle": "graphite",
   "mobileSolid": true,
   "hideLoteFill": false,
+  "loteFillOnHoverOnly": true,
+  "loteHoverColor": "neon-green",
   "contact": {
     "whatsapp": "",
     "formEmail": "",
@@ -16,7 +21,10 @@
     "platformWhatsapp": "+56987491964",
     "platformWeb": "https://www.australdrone.cl",
     "platformLogo": "https://raw.githubusercontent.com/iLyCoNs/austral-drones/refs/heads/main/logobanner.png",
-    "platformName": "AUSTRALDRONE.CL"
+    "platformName": "AUSTRALDRONE.CL",
+    "waAlertsEnabled": false,
+    "waAlertsPhone": "",
+    "waAlertsKey": ""
   },
-  "updatedAt": 1784309397529
+  "updatedAt": 1784731396960
 }
